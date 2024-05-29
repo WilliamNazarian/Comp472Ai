@@ -1,5 +1,6 @@
 from typing import List, Callable
 
+import matplotlib.patches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -45,19 +46,16 @@ def plot_image_dimensions_histogram(image_paths: List[str]) -> None:
     plt.show()
 
 
-def plot_aggregate_pixel_intensity_histogram(class_name, image_paths: List[str], ignore_zeros=True):
-    # Getting data and stuff
+def aggregate_rgb_channel_intensities(image_paths: List[str], ignore_zeros=True) -> (np.ndarray, np.ndarray, np.ndarray):
     red_pixels = []
     green_pixels = []
     blue_pixels = []
-    pixels = []
 
     for path in image_paths:
         with Image.open(path) as image:
             red_pixels.extend(get_image_pixel_intensity(image, transform=convert_to_redscale))
             green_pixels.extend(get_image_pixel_intensity(image, transform=convert_to_greenscale))
             blue_pixels.extend(get_image_pixel_intensity(image, transform=convert_to_bluescale))
-            pixels.extend(get_image_pixel_intensity(image))
 
     red_pixels = np.asarray(red_pixels, dtype=np.uint16).flatten()
     red_pixels = np.log(red_pixels + 1) / np.log(log_base)
@@ -68,20 +66,56 @@ def plot_aggregate_pixel_intensity_histogram(class_name, image_paths: List[str],
     blue_pixels = np.asarray(blue_pixels, dtype=np.uint16).flatten()
     blue_pixels = np.log(blue_pixels + 1) / np.log(log_base)
 
-    pixels = np.asarray(image, dtype=np.uint16).flatten()
-    pixels = np.log(pixels + 1) / np.log(log_base)
-
     if ignore_zeros:
         red_pixels = red_pixels[red_pixels != 0]
         green_pixels = green_pixels[green_pixels != 0]
         blue_pixels = blue_pixels[blue_pixels != 0]
 
-    if len(image_paths) == 1:
-        callback = (lambda fig, axes: __plt_callback_px_intensity_single(image_paths[0], ignore_zeros, fig, axes))
-    else:
-        callback = (lambda fig, axes: __plt_callback_px_intensity_multiple(class_name, ignore_zeros, fig, axes))
+    return red_pixels, green_pixels, blue_pixels
 
-    __plot_pixel_intensity_overlapped(red_pixels, green_pixels, blue_pixels, callback=callback)
+
+def calculate_rgb_channel_weights(red_pixels, green_pixels, blue_pixels) -> (np.ndarray, np.ndarray, np.ndarray):
+    red_pixels_w = np.empty(red_pixels.shape)
+    red_pixels_w.fill(1 / red_pixels.shape[0])
+    green_pixels_w = np.empty(green_pixels.shape)
+    green_pixels_w.fill(1 / green_pixels.shape[0])
+    blue_pixels_w = np.empty(blue_pixels.shape)
+    blue_pixels_w.fill(1 / blue_pixels.shape[0])
+
+    return red_pixels_w, green_pixels_w, blue_pixels_w
+
+
+def plot_rgb_channel_intensities(ax: plt.Axes, red_pixels, green_pixels, blue_pixels):
+    red_pixels_w, green_pixels_w, blue_pixels_w = calculate_rgb_channel_weights(red_pixels, green_pixels, blue_pixels)
+
+    ax.hist([red_pixels, green_pixels, blue_pixels], np.linspace(0, math.log(256, log_base), 16),
+            alpha=0.7,
+            weights=[red_pixels_w, green_pixels_w, blue_pixels_w],
+            label=['red pixel intensities', 'green pixel intensities', 'blue pixel intensities'],
+            color=['lightcoral', 'lawngreen', 'cornflowerblue'])
+
+
+def get_legend_handles() -> List[matplotlib.patches.Patch]:
+    return [
+        Patch(color='lightcoral', label='red pixel intensities'),
+        Patch(color='lawngreen', label='green pixel intensities'),
+        Patch(color='cornflowerblue', label='blue pixel intensities'),
+    ]
+
+
+def plot_aggregate_pixel_intensity_histogram(class_name, image_paths: List[str], ignore_zeros=True):
+    red_pixels, green_pixels, blue_pixels = aggregate_rgb_channel_intensities(image_paths)
+
+    if len(image_paths) == 1:
+        callback = (lambda _fig, axes: __plt_callback_px_intensity_single(image_paths[0], ignore_zeros, _fig, axes))
+    else:
+        callback = (lambda _fig, axes: __plt_callback_px_intensity_multiple(class_name, ignore_zeros, _fig, axes))
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    plot_rgb_channel_intensities(ax, red_pixels, green_pixels, blue_pixels)
+    callback(fig, ax)
+    plt.show()
 
 
 # Sets the values for the plot for an RGB pixel intensity histogram for a SINGLE image
@@ -93,12 +127,7 @@ def __plt_callback_px_intensity_single(image_name, ignore_zeros, fig: plt.Figure
     axes.set_xlabel(f'Pixel intensity (log w/ base {log_base})')
     axes.set_ylabel('Normalized frequency')
 
-    legend_handles = [
-        Patch(color='lightcoral', label='red pixel intensities'),
-        Patch(color='lawngreen', label='green pixel intensities'),
-        Patch(color='cornflowerblue', label='blue pixel intensities'),
-    ]
-    axes.legend(handles=legend_handles, loc='upper left')
+    axes.legend(handles=get_legend_handles(), loc='upper left')
 
 
 # Sets the values for the plot for an RGB pixel intensity histogram for MULTIPLE images
@@ -108,34 +137,7 @@ def __plt_callback_px_intensity_multiple(class_name, ignore_zeros, fig: plt.Figu
     axes.set_xlabel(f'Pixel intensity (log w/ base {log_base})')
     axes.set_ylabel('Normalized frequency')
 
-    legend_handles = [
-        Patch(color='lightcoral', label='red pixel intensities'),
-        Patch(color='lawngreen', label='green pixel intensities'),
-        Patch(color='cornflowerblue', label='blue pixel intensities'),
-    ]
-    axes.legend(handles=legend_handles, loc='upper left')
-
-
-def __plot_pixel_intensity_overlapped(red_pixels, green_pixels, blue_pixels,
-                                      callback: Callable[[plt.Figure, plt.Axes], None] = (lambda _plt: None)):
-    red_pixels_w = np.empty(red_pixels.shape)
-    red_pixels_w.fill(1 / red_pixels.shape[0])
-
-    green_pixels_w = np.empty(green_pixels.shape)
-    green_pixels_w.fill(1 / green_pixels.shape[0])
-
-    blue_pixels_w = np.empty(blue_pixels.shape)
-    blue_pixels_w.fill(1 / blue_pixels.shape[0])
-
-    fig, ax = plt.subplots(figsize=(10, 10))
-    ax.hist([red_pixels, green_pixels, blue_pixels], np.linspace(0, math.log(256, log_base), 16),
-            alpha=0.7,
-            weights=[red_pixels_w, green_pixels_w, blue_pixels_w],
-            label=['red pixel intensities', 'green pixel intensities', 'blue pixel intensities'],
-            color=['lightcoral', 'lawngreen', 'cornflowerblue'])
-
-    callback(fig, ax)
-    plt.show()
+    axes.legend(handles=get_legend_handles(), loc='upper left')
 
 
 def main():
