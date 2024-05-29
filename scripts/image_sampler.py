@@ -2,11 +2,10 @@
 import os.path
 from typing import List, Callable
 from collections import deque
-from PIL import Image
+from scripts.data_loader import get_metadata
 from utils.image import *
 
-
-import math
+import sys
 import random
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
@@ -21,9 +20,6 @@ def get_callback_for_class_sampling(class_name: str) -> Callable[[plt.Figure], N
         fig.suptitle(f"15 sampled images from the class \"{class_name}\"")
 
         legend_handles: List[plt.Artist] = hist.get_legend_handles()
-        legend_handles.append(mlines.Line2D([], [], color='black', label='Y-Axis: Normalized frequency'))
-        legend_handles.append(mlines.Line2D([], [], color='black',
-                                            label=f'X-Axis: Pixel intensity (log w/ base {hist.log_base})'))
         fig.legend(handles=legend_handles, loc='upper left')
 
     return customize_figure
@@ -70,3 +66,34 @@ def __format_histogram_cell(ax: plt.Axes):
     ax.set_xlabel(f'Pixel intensity (log w/ base {hist.log_base})')
     ax.set_ylabel('Normalized frequency')
     ax.grid(True)
+
+
+def __sample_from_all_images(df):
+    def customize_figure(fig: plt.Figure):
+        fig.suptitle(f"15 sampled images from the whole dataset")
+
+        legend_handles: List[plt.Artist] = hist.get_legend_handles()
+        fig.legend(handles=legend_handles, loc='upper left')
+
+    sample_and_get_pixel_intensity_histogram(df['path'].tolist(), callback=customize_figure)
+
+
+def main():
+    df = get_metadata()
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+
+        match arg:
+            case "anger" | "engaged" | "happy" | "neutral":
+                print(f"Sampling 15 images from the class \"{arg}\"")
+                df_grouped_by_label = df.groupby('label')
+                df_class = df_grouped_by_label.get_group(arg)
+                sample_and_get_pixel_intensity_histogram(df_class['path'].tolist(), get_callback_for_class_sampling(arg))
+            case _:
+                __sample_from_all_images(df)
+    else:
+        __sample_from_all_images(df)
+
+
+if __name__ == "__main__":
+    main()
