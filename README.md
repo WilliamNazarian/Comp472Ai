@@ -4,8 +4,18 @@ COMP 472 Project
 #### 1. Setting up the environment
 
 ```
-$ py -m venv comp471
+$ py -m venv comp472
 $ comp471/Scripts/activate
 $ pip install -r requirements.txt
     ...
+```
+
+#### 2. Running individual scripts
+
+```
+$ py -m scripts.plot_histograms
+...
+
+$ py -m scripts.plot_bars
+...
 ```
