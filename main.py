@@ -1,16 +1,35 @@
-# This is a sample Python script.
+import pandas as pd
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from data.visualization import *
 
 
-# Press the green button in the gutter to run the script.
+def update_df_paths(df: pd.DataFrame) -> None:
+    df['path'] = df['path'].apply(lambda path: "part1/structured_data/" + path)
+
+
+def main():
+    csv_path = "part1/Combined_Labels_DataFrame.csv"
+    df = pd.read_csv(csv_path)
+    update_df_paths(df)
+
+    df_grouped_by_label = df.groupby('label')
+
+    df_anger = df_grouped_by_label.get_group('anger')
+    df_engaged = df_grouped_by_label.get_group('engaged')
+    df_happy = df_grouped_by_label.get_group('happy')
+    df_neutral = df_grouped_by_label.get_group('neutral')
+
+    plot_pixel_intensity_distribution('anger', df_anger['path'].tolist())
+"""
+    for index, row in df_happy.iterrows():
+        print(f"{index}:\t{row['label']} {row['path']}")
+        
+        
+    plot_classes_distribution(df_anger, df_engaged, df_happy, df_neutral)
+        
+    plot_image_dimensions_histogram(df_happy['path'].tolist())
+"""
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    main()
