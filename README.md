@@ -23,7 +23,7 @@ The project comes with a `requirements.txt` for installing dependencies. The sim
 to create a `venv`, and then install the dependencies as seen below:
 ```
 $ py -m venv comp472
-$ comp471/Scripts/activate
+$ comp472/Scripts/activate
 $ pip install -r requirements.txt
     ...
 ```
