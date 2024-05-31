@@ -10,8 +10,8 @@
 
 ## Group Members
 - 40231530, Bryan Carlo Miguel
-- //
-- //
+- 40212780, Yasser Ameer
+- 40213100, William Nazarian
 
 ## Table of Contents
 1. [Setting up the Project](#setting-up-the-project)
