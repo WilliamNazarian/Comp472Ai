@@ -8,7 +8,6 @@ from utils.image import *
 import sys
 import random
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
 import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
 

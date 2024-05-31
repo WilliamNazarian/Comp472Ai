@@ -42,10 +42,10 @@ $ py -m scripts.plot_bars
 ```
 
 ### Pixel Intensity Distribution 
-The command `py -m scripts.plot_bars <CLASS NAME>` visualizes the distribution for the specified class. For example, the
+The command `py -m scripts.plot_histograms <CLASS NAME>` visualizes the distribution for the specified class. For example, the
 following command visualizes the intensities for the class `happy`.
 ```
-$ py -m scripts.plot_bars happy 
+$ py -m scripts.plot_histograms happy 
     ...
 ```
 
@@ -54,7 +54,7 @@ The command `py -m scripts.image_sampler <CLASS NAME>` samples 15 images from th
 images' pixel intensities, then displays them all side-by-side in a 5x3 grid. For example, the following command 
 does this sampling and visualization for the class `happy`.
 ```
-$ py -m scripts.plot_histograms happy 
+$ py -m scripts.image_sampler happy 
     ...
 ```
 

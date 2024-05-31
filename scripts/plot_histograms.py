@@ -2,6 +2,7 @@ from typing import List, Callable
 
 import matplotlib.patches
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import numpy as np
 import pandas as pd
 import sys
@@ -30,17 +31,17 @@ def plot_image_dimensions_histogram(image_paths: List[str]) -> None:
             })
     df = pd.DataFrame(image_info)
 
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 15))
+    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 15))
 
-    df['height'].plot(kind='hist', bins=5, ax=axes[0])
-    axes[0].set_title('Image height distribution')
-    axes[0].set_xlabel('Image Height (px)')
-    axes[0].set_ylabel('Number of images')
+    df['height'].plot(kind='hist', bins=5, ax=ax[0])
+    ax[0].set_title('Image height distribution')
+    ax[0].set_xlabel('Image Height (px)')
+    ax[0].set_ylabel('Number of images')
 
-    df['width'].plot(kind='hist', bins=5, ax=axes[1])
-    axes[1].set_title('Image width distribution')
-    axes[1].set_xlabel('Image Width (px)')
-    axes[1].set_ylabel('Number of images')
+    df['width'].plot(kind='hist', bins=5, ax=ax[1])
+    ax[1].set_title('Image width distribution')
+    ax[1].set_xlabel('Image Width (px)')
+    ax[1].set_ylabel('Number of images')
 
     # plt.tight_layout()
     plt.show()
@@ -107,9 +108,9 @@ def plot_aggregate_pixel_intensity_histogram(class_name, image_paths: List[str],
     red_pixels, green_pixels, blue_pixels = aggregate_rgb_channel_intensities(image_paths)
 
     if len(image_paths) == 1:
-        callback = (lambda _fig, axes: __plt_callback_px_intensity_single(image_paths[0], ignore_zeros, _fig, axes))
+        callback = (lambda _fig, _ax: __plt_callback_px_intensity_single(image_paths[0], ignore_zeros, _fig, _ax))
     else:
-        callback = (lambda _fig, axes: __plt_callback_px_intensity_multiple(class_name, ignore_zeros, _fig, axes))
+        callback = (lambda _fig, _ax: __plt_callback_px_intensity_multiple(class_name, ignore_zeros, _fig, _ax))
 
     fig, ax = plt.subplots(figsize=(10, 10))
 
@@ -119,51 +120,84 @@ def plot_aggregate_pixel_intensity_histogram(class_name, image_paths: List[str],
 
 
 # Sets the values for the plot for an RGB pixel intensity histogram for a SINGLE image
-def __plt_callback_px_intensity_single(image_name, ignore_zeros, fig: plt.Figure, axes: plt.Axes) -> None:
+def __plt_callback_px_intensity_single(image_name, ignore_zeros, fig: plt.Figure, ax: plt.Axes) -> None:
     title_text = (f"Overlapped RGB pixel intensity histogram"
                   f"{f" for the image \"{image_name}\"" if image_name else ""}"
                   f"{f" (Zero values omitted)" if ignore_zeros else ""}")
-    axes.set_title(title_text)
-    axes.set_xlabel(f'Pixel intensity (log w/ base {log_base})')
-    axes.set_ylabel('Normalized frequency')
+    ax.set_title(title_text)
+    ax.set_xlabel(f'Pixel intensity (log w/ base {log_base})')
+    ax.set_ylabel('Normalized frequency')
 
-    axes.legend(handles=get_legend_handles(), loc='upper left')
+    ax.legend(handles=get_legend_handles(), loc='upper left')
 
 
 # Sets the values for the plot for an RGB pixel intensity histogram for MULTIPLE images
-def __plt_callback_px_intensity_multiple(class_name, ignore_zeros, fig: plt.Figure, axes: plt.Axes) -> None:
-    axes.set_title(f'Intensity distributions of the RGB channels \"{class_name}\"'
+def __plt_callback_px_intensity_multiple(class_name, ignore_zeros, fig: plt.Figure, ax: plt.Axes) -> None:
+    ax.set_title(f'Intensity distributions of the RGB channels \"{class_name}\"'
                    f"{f" (Zero values omitted)" if ignore_zeros else ""}")
-    axes.set_xlabel(f'Pixel intensity (log w/ base {log_base})')
-    axes.set_ylabel('Normalized frequency')
+    ax.set_xlabel(f'Pixel intensity (log w/ base {log_base})')
+    ax.set_ylabel('Normalized frequency')
 
-    axes.legend(handles=get_legend_handles(), loc='upper left')
+    ax.legend(handles=get_legend_handles(), loc='upper left')
+
+
+def __plot_2_by_2_pixel_intensity_grid(anger_image_paths, engaged_image_paths, happy_image_paths, neutral_image_paths) -> None:
+    ignore_zeros = True
+    current_index = 0
+    image_paths_and_classes = [
+        (anger_image_paths, "anger"),
+        (engaged_image_paths, "engaged"),
+        (happy_image_paths, "happy"),
+        (neutral_image_paths, "neutral")
+    ]
+
+    fig = plt.figure(figsize=(12, 8))
+    outer_grid = gridspec.GridSpec(2, 2, wspace=0.25, hspace=0.5)
+
+    for i in range(2):
+        for j in range(2):
+            image_paths = image_paths_and_classes[i][0]
+            class_name = image_paths_and_classes[i][1]
+
+            ax = fig.add_subplot(outer_grid[i, j])
+            red_pixels, green_pixels, blue_pixels = aggregate_rgb_channel_intensities(image_paths)
+            plot_rgb_channel_intensities(ax, red_pixels, green_pixels, blue_pixels)
+
+            ax.set_title(f'For class "{class_name}"{f" (Zero values omitted)" if ignore_zeros else ""}')
+            ax.set_xlabel(f'Pixel intensity (log w/ base {log_base})')
+            ax.set_ylabel('Normalized frequency')
+            ax.grid(True)
+
+            current_index += 1
+
+    fig.suptitle(f"Aggregate RGB Pixel Intensities for each Class:")
+    fig.legend(handles=get_legend_handles(), loc='upper left')
+
+    plt.show()
 
 
 def main():
+    df = get_metadata()
+    df_grouped_by_label = df.groupby('label')
+
     if len(sys.argv) > 1:
         arg = sys.argv[1]
-        df = get_metadata()
 
         match arg:
             case "anger":
                 print("Plotting the RGB pixel intensities histogram for the class \"anger\"")
-                df_grouped_by_label = df.groupby('label')
                 df_anger = df_grouped_by_label.get_group('anger')
                 plot_aggregate_pixel_intensity_histogram('anger', df_anger['path'].tolist())
             case "engaged":
                 print("Plotting the RGB pixel intensities histogram for the class \"engaged\"")
-                df_grouped_by_label = df.groupby('label')
                 df_engaged = df_grouped_by_label.get_group('engaged')
                 plot_aggregate_pixel_intensity_histogram('engaged', df_engaged['path'].tolist())
             case "happy":
                 print("Plotting the RGB pixel intensities histogram for the class \"happy\"")
-                df_grouped_by_label = df.groupby('label')
                 df_happy = df_grouped_by_label.get_group('happy')
                 plot_aggregate_pixel_intensity_histogram('happy', df_happy['path'].tolist())
             case "neutral":
                 print("Plotting the RGB pixel intensities histogram for the class \"neutral\"")
-                df_grouped_by_label = df.groupby('label')
                 df_neutral = df_grouped_by_label.get_group('neutral')
                 plot_aggregate_pixel_intensity_histogram('neutral', df_neutral['path'].tolist())
             case "image_dimensions":
@@ -174,7 +208,12 @@ def main():
                 # search for a specific image then do pixel RGB channel visualization for that specific image
                 pass
     else:
-        print("No arguments received.")
+        print("Plotting the RGB pixel intensities histogram for all classes. This might take time.")
+        anger_image_paths = df_grouped_by_label.get_group('anger')['path'].tolist()
+        engaged_image_paths = df_grouped_by_label.get_group('engaged')['path'].tolist()
+        happy_image_paths = df_grouped_by_label.get_group('happy')['path'].tolist()
+        neutral_image_paths = df_grouped_by_label.get_group('neutral')['path'].tolist()
+        __plot_2_by_2_pixel_intensity_grid(anger_image_paths, engaged_image_paths, happy_image_paths, neutral_image_paths)
 
 
 if __name__ == "__main__":
