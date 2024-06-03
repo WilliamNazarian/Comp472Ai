@@ -14,18 +14,21 @@ import matplotlib.gridspec as gridspec
 import scripts.plot_histograms as hist
 
 
+# Defining aliases
+hist_pf_rgb = hist.PlotFormatter.RgbChannelsFormatter
+
+
 def get_callback_for_class_sampling(class_name: str) -> Callable[[plt.Figure], None]:
     def customize_figure(fig: plt.Figure):
         fig.suptitle(f"15 sampled images from the class \"{class_name}\"")
-
-        legend_handles: List[plt.Artist] = hist.get_legend_handles()
-        fig.legend(handles=legend_handles, loc='upper left')
+        hist_pf_rgb.add_legend(fig=fig)
 
     return customize_figure
 
 
 def sample_and_get_pixel_intensity_histogram(image_paths: List[str],
                                              callback: Callable[[plt.Figure], None] = (lambda _fig: None)):
+    ignore_zeros = True
     sampled_image_paths = random.sample(image_paths, 15)  # selection without duplicates
     image_paths_queue = deque(sampled_image_paths)
 
@@ -47,9 +50,14 @@ def sample_and_get_pixel_intensity_histogram(image_paths: List[str],
 
             # Right cell
             ax_right = plt.Subplot(fig, inner_grid[1])
-            red_pixels, green_pixels, blue_pixels = hist.aggregate_rgb_channel_intensities([current_image_path])
-            hist.plot_rgb_channel_intensities(ax_right, red_pixels, green_pixels, blue_pixels)
-            __format_histogram_cell(ax_right)
+            red_pixels, green_pixels, blue_pixels = (
+                hist.Data.calculate_aggregate_rgb_channel_intensities([current_image_path], ignore_zeros=ignore_zeros))
+
+            _ = hist.PlotCreator.generate_rgb_channel_intensities_plot(ax_right, red_pixels, green_pixels, blue_pixels)
+
+            hist_pf_rgb.format_rgb_channel_intensities_plot(ax_right, current_image_path,
+                                                            ignore_zeros=ignore_zeros,
+                                                            add_title=False)
             fig.add_subplot(ax_right)
 
     callback(fig)
@@ -70,9 +78,7 @@ def __format_histogram_cell(ax: plt.Axes):
 def __sample_from_all_images(df):
     def customize_figure(fig: plt.Figure):
         fig.suptitle(f"15 sampled images from the whole dataset")
-
-        legend_handles: List[plt.Artist] = hist.get_legend_handles()
-        fig.legend(handles=legend_handles, loc='upper left')
+        hist_pf_rgb.add_legend(fig=fig)
 
     sample_and_get_pixel_intensity_histogram(df['path'].tolist(), callback=customize_figure)
 
