@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
 
-import scripts.plot_histograms as hist
+import scripts.visualization.plot_histograms as hist
 
 
 # Defining aliases

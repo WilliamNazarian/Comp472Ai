@@ -1,22 +1,35 @@
-import numpy as np
-import pandas as pd
-import math
+import torch
+import torch.nn as nn
 
-from scripts.data_loader import *
-from scripts.plot_histograms import *
-from scripts.image_sampler import *
+import scripts.data_loader as data_loader
+import scripts.model.train_model as train_model
+
+from models.model1 import OB_05Model
 
 
 def main():
-    df = get_metadata()
-    df_grouped_by_label = df.groupby('label')
+    training_set_loader, validation_set_loader, testing_set_loader = data_loader.split_images_dataset()
 
-    df_anger = df_grouped_by_label.get_group('anger')
-    df_engaged = df_grouped_by_label.get_group('engaged')
-    df_happy = df_grouped_by_label.get_group('happy')
-    df_neutral = df_grouped_by_label.get_group('neutral')
+    learning_rate = 0.001
+    model = OB_05Model()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    sample_and_get_pixel_intensity_histogram(df_anger['path'].tolist(), get_callback_for_class_sampling('anger'))
+    training_config = train_model.TrainingConfig(
+        training_set_loader=training_set_loader,
+        validation_set_loader=validation_set_loader,
+        testing_set_loader=testing_set_loader,
+
+        epochs=100,
+        learning_rate=learning_rate,
+
+        classes=data_loader.get_trainset().classes,
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer
+    )
+
+    train_model.train_model(training_config)
 
 
 if __name__ == '__main__':
