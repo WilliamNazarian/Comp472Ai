@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 
 import scripts.data_loader as data_loader
-import scripts.model.train_model as train_model
+import scripts.model.training as training
+import scripts.model.evaluation as evaluation
 
 from models.model1 import OB_05Model
 
@@ -15,12 +16,12 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    training_config = train_model.TrainingConfig(
+    training_config = training.TrainingConfig(
         training_set_loader=training_set_loader,
         validation_set_loader=validation_set_loader,
         testing_set_loader=testing_set_loader,
 
-        epochs=100,
+        epochs=10,
         learning_rate=learning_rate,
 
         classes=data_loader.get_trainset().classes,
@@ -29,7 +30,8 @@ def main():
         optimizer=optimizer
     )
 
-    train_model.train_model(training_config)
+    training.train_model(training_config)
+    torch.save(model.state_dict(), 'models/model.pth')
 
 
 if __name__ == '__main__':

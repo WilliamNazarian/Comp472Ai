@@ -14,25 +14,11 @@ from torch.utils.data import DataLoader, random_split
 from typing import List, Callable
 from dataclasses import dataclass
 
+from scripts.model.types import TrainingConfig
+
+
 __device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 __num_classes = 4
-
-
-@dataclass
-class TrainingConfig:
-    # Datasets
-    training_set_loader: DataLoader
-    validation_set_loader: DataLoader
-    testing_set_loader: DataLoader
-
-    # Training hyperparameters
-    epochs: int
-    learning_rate: float
-
-    classes: List[str]
-    model: nn.Module
-    criterion: nn.modules.loss._Loss
-    optimizer: optim.Optimizer
 
 
 def train_model(training_config: TrainingConfig):

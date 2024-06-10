@@ -1,10 +1,13 @@
 import os
+import pickle
+
+import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import pandas as pd
 
-
 from torch.utils.data import DataLoader, random_split
+
 
 # Get the current file's directory
 __current_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,6 +25,11 @@ __transform = transforms.Compose([
     transforms.Normalize((__mean_gray,), (__stddev_gray,))
 ])
 
+# Dataloader settings
+__shuffle = True
+__num_workers = 4
+__pin_memory = True
+
 
 def get_metadata():
     csv_path = "./part1/Combined_Labels_DataFrame.csv"
@@ -35,6 +43,7 @@ def get_trainset(use_colored=False):
     return datasets.ImageFolder(root=images_directory, transform=__transform)
 
 
+# Splits the dataset to training, validation, and test sub-datasets
 def split_images_dataset(use_colored=False) -> (DataLoader, DataLoader, DataLoader):
     images_directory = __colored_images_directory if use_colored else __greyscale_images_directory
     trainset = datasets.ImageFolder(root=images_directory, transform=__transform)
@@ -55,12 +64,8 @@ def split_images_dataset(use_colored=False) -> (DataLoader, DataLoader, DataLoad
     lengths = [validation_set_length, testing_set_length]
     validation_dataset, testing_dataset = random_split(validation_and_testing_dataset, lengths)
 
-    # creating data loaders per partition
-    num_workers = 4
-    pin_memory = True
+    return training_dataset, validation_dataset, testing_dataset
 
-    training_set_loader = DataLoader(training_dataset, batch_size=32, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
-    validation_set_loader = DataLoader(validation_dataset, batch_size=32, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
-    testing_set_loader = DataLoader(testing_dataset, batch_size=32, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
 
-    return training_set_loader, validation_set_loader, testing_set_loader
+def create_data_loader(dataset):
+    return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=__num_workers, pin_memory=__pin_memory)
