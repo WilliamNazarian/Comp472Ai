@@ -40,7 +40,7 @@ class ConfusionMatrx:
         return true_positives, false_positives, true_negatives, false_negatives
 
     @classmethod
-    def calculate_per_class_metrics(cls, confusion_matrix: npt.NDArray[int], indices=None):
+    def calculate_per_class_metrics(cls, confusion_matrix: npt.NDArray[int]):
         true_positives, false_positives, true_negatives, false_negatives = (
             cls.calculate_confusion_matrix_metrics(confusion_matrix))
 

@@ -113,11 +113,68 @@ class TrainingVisualizations:
 
 class TestingVisualizations:
     @staticmethod
-    def plot_overall_metrics(evaluation_results: EvaluationResults):
-
+    def get_metrics_table_as_df(evaluation_results: EvaluationResults) -> pd.DataFrame:
         confusion_matrix = evaluation_results.confusion_matrix
-        macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(confusion_matrix)
-        micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_macro.calculate_overall_metrics(confusion_matrix)
+
+        macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
+            confusion_matrix)
+        micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
+            confusion_matrix)
         accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
 
+        data = [
+            [macro_precision, macro_recall, macro_f1_score, micro_precision, micro_recall, micro_f1_score, accuracy]]
+        tuples = [("macro", "precision"), ("macro", "recall"), ("macro", "f1_score"), ("micro", "precision"),
+                  ("micro", "recall"), ("micro", "f1_score"), ("", "accuracy")]
 
+        df = pd.DataFrame(data,
+                          index=pd.Index(["model"]),
+                          columns=pd.MultiIndex.from_tuples(tuples, names=["", "metrics"]))
+
+        return df
+
+    @staticmethod
+    def get_confusion_matrix_as_df(evaluation_results: EvaluationResults) -> pd.DataFrame:
+        confusion_matrix = evaluation_results.confusion_matrix
+
+        df = pd.DataFrame(confusion_matrix,
+                          index=pd.Index(["anger", "engaged", "happy", "neutral"]),
+                          columns=pd.Index(["anger", "engaged", "happy", "neutral"]))
+
+        return df
+
+    @staticmethod
+    def get_metrics_per_class_as_df(evaluation_results: EvaluationResults) -> pd.DataFrame:
+        confusion_matrix = evaluation_results.confusion_matrix
+
+        precisions, recalls, f1_scores, accuracies = cm.calculate_per_class_metrics(confusion_matrix)
+        array = [precisions, recalls, f1_scores, accuracies]
+
+        df = pd.DataFrame(array,
+                          index=pd.Index(["precision", "recall", "f1_score", "accuracy"]),
+                          columns=pd.Index(["anger", "engaged", "happy", "neutral"]))
+        return df
+
+    @staticmethod
+    def plot_metrics_per_class(evaluation_results: EvaluationResults) -> None:
+        def process_metrics(_data, metric_name):
+            as_df = pd.DataFrame(_data, columns=["score"])
+            as_df.insert(0, "class", ["anger", "engaged", "happy", "neutral"])
+            as_df.insert(1, "metric", metric_name)
+            # as_df[metric_name] = metric_name
+            return as_df
+
+        confusion_matrix = evaluation_results.confusion_matrix
+        precisions, recalls, f1_scores, accuracies = cm.calculate_per_class_metrics(confusion_matrix)
+
+        processed_precisions = process_metrics(precisions, "precision")
+        processed_recalls = process_metrics(recalls, "recall")
+        processed_f1_scores = process_metrics(f1_scores, "f1_score")
+        processed_accuracies = process_metrics(accuracies, "accuracy")
+
+        df = pd.concat([processed_precisions, processed_recalls, processed_f1_scores, processed_accuracies])
+
+        g = sns.catplot(df, kind="bar", x="class", y="score", hue="metric",
+                        errorbar="sd", alpha=0.6, height=6)
+        g.despine(left=True, bottom=True)
+        g.legend.set_title("metric")
