@@ -31,7 +31,6 @@ def evaluate_model(model: nn.Module, dataloader: DataLoader) -> EvaluationResult
             outputs = model(images)
             # Get predictions from the maximum value
             _, predicted = torch.max(outputs.data, 1)
-
             expected = labels.tolist()
             actual = predicted.tolist()
             expected_vs_actual_pairs.extend(list(zip(expected, actual)))

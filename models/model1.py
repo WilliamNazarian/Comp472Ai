@@ -18,7 +18,10 @@ class OB_05Model(nn.Module):
 
         # Fully connected layers
         self.fc1 = nn.Linear(3000, 500)  # 10 x 10 x 30 -> 3000 -> 500
-        self.fc2 = nn.Linear(500, 10)  # 500 -> 10
+        self.fc2 = nn.Linear(500, 4)  # 500 -> 4
+
+
+        # Had to change the number of nodes in the output layer
 
     def forward(self, x):
         # Convolution Layer 1
