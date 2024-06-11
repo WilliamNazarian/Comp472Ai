@@ -8,6 +8,11 @@ from pipe import *
 from scripts.model.types import *
 
 
+cm = ConfusionMatrx
+cm_macro = ConfusionMatrx.Macro
+cm_micro = ConfusionMatrx.Micro
+
+
 class TrainingVisualizations:
     @staticmethod
     def __get_overall_training_metrics(training_logger: TrainingLogger):
@@ -68,7 +73,7 @@ class TrainingVisualizations:
         gs = GridSpec(2, 3, width_ratios=[2, 1, 1])
 
         ax0 = fig.add_subplot(gs[:, 0])
-        ax0.set_title('Overall training metrics')
+        ax0.set_title('Overall training metrics (micro)')
         plot0 = sns.lineplot(ax=ax0, x="epoch", y="score", hue="metric", data=overall_metrics, marker='o')
 
         ax1 = fig.add_subplot(gs[0, 1])
@@ -87,6 +92,14 @@ class TrainingVisualizations:
         ax4.set_title('F1-score per class')
         plot4 = sns.lineplot(ax=ax4, x="epoch", y="score", hue="class", data=f1_scores_per_class, marker='o')
 
+        axes = [ax0, ax1, ax2, ax3, ax4]
+        for ax in axes:
+            ax.axhspan(0.9, ax.get_ylim()[1], color='silver', alpha=0.3)
+            """
+            ax.text(0.5, 0.95, 'Region where y > 0.9', horizontalalignment='center', verticalalignment='top',
+                    transform=ax.transAxes, backgroundcolor='silver')
+            """
+
         # create vertical line partition
         line_x = 0.475
         fig.add_artist(plt.Line2D([line_x, line_x], [0, 1],
@@ -96,3 +109,15 @@ class TrainingVisualizations:
                                   transform=fig.transFigure))
 
         plt.subplots_adjust(hspace=0.3)
+
+
+class TestingVisualizations:
+    @staticmethod
+    def plot_overall_metrics(evaluation_results: EvaluationResults):
+
+        confusion_matrix = evaluation_results.confusion_matrix
+        macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(confusion_matrix)
+        micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_macro.calculate_overall_metrics(confusion_matrix)
+        accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
+
+

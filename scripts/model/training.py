@@ -17,6 +17,12 @@ from dataclasses import dataclass
 
 from scripts.model.types import TrainingConfig, TrainingLogger, ConfusionMatrx
 
+
+cm = ConfusionMatrx
+cm_macro = ConfusionMatrx.Macro
+cm_micro = ConfusionMatrx.Micro
+
+
 __device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 __num_classes = 4
 
@@ -116,15 +122,11 @@ def __calculate_metrics(training_logger: TrainingLogger):
     validation_confusion_matrix = training_logger.validation_confusion_matrix_history[-1]
 
     # calculating metrics
-    training_precision = ConfusionMatrx.calculate_precision(training_confusion_matrix, indices=list(range(4)))
-    training_recall = ConfusionMatrx.calculate_recall(training_confusion_matrix, indices=list(range(4)))
-    training_accuracy = ConfusionMatrx.calculate_accuracy(training_confusion_matrix, indices=list(range(4)))
-    training_f1_score = ConfusionMatrx.calculate_f1_score(training_confusion_matrix, indices=list(range(4)))
+    training_precision, training_recall, training_f1_score, training_accuracy = (
+        cm_micro.calculate_overall_metrics(training_confusion_matrix))
 
-    validation_precision = ConfusionMatrx.calculate_precision(validation_confusion_matrix, indices=list(range(4)))
-    validation_recall = ConfusionMatrx.calculate_recall(validation_confusion_matrix, indices=list(range(4)))
-    validation_accuracy = ConfusionMatrx.calculate_accuracy(validation_confusion_matrix, indices=list(range(4)))
-    validation_f1_score = ConfusionMatrx.calculate_f1_score(validation_confusion_matrix, indices=list(range(4)))
+    validation_precision, validation_recall, validation_f1_score, validation_accuracy = (
+        cm_micro.calculate_overall_metrics(validation_confusion_matrix))
 
     # storing metrics
     training_logger.training_precision_history.append(training_precision)
