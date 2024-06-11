@@ -3,7 +3,7 @@ import os.path
 from typing import List, Callable
 from collections import deque
 from scripts.data_loader import get_metadata
-from utils.image import *
+from src.utils.image import *
 
 import sys
 import random

@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 
 import scripts.data_loader as data_loader
-import scripts.model.training as training
-import scripts.model.evaluation as evaluation
+import src.training as training
+import src.evaluation as evaluation
 
-from models.model1 import OB_05Model
+from src.models.model1 import OB_05Model
 
 
 def main():
