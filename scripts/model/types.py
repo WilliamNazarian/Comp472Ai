@@ -32,7 +32,7 @@ class ConfusionMatrx:
         return np.sum(confusion_matrix)
 
     @classmethod
-    def calculate_metrics(cls, confusion_matrix: npt.NDArray[int]):
+    def calculate_confusion_matrix_metrics(cls, confusion_matrix: npt.NDArray[int]):
         true_positives = np.diag(confusion_matrix)
         false_positives = np.sum(confusion_matrix, axis=0) - true_positives
         false_negatives = np.sum(confusion_matrix, axis=1) - true_positives
@@ -40,63 +40,51 @@ class ConfusionMatrx:
         return true_positives, false_positives, true_negatives, false_negatives
 
     @classmethod
-    def calculate_precision(cls, confusion_matrix: npt.NDArray[int], indices=None):
-        true_positives, false_positives, _, _ = cls.calculate_metrics(confusion_matrix)
+    def calculate_per_class_metrics(cls, confusion_matrix: npt.NDArray[int]):
+        true_positives, false_positives, true_negatives, false_negatives = (
+            cls.calculate_confusion_matrix_metrics(confusion_matrix))
 
-        if indices is None:
-            true_positives = np.sum(true_positives)
-            false_positives = np.sum(false_positives)
-            return true_positives / (true_positives + false_positives)
-        elif isinstance(indices, list) and all(isinstance(item, int) for item in indices):
-            precisions_per_class = true_positives / (true_positives + false_positives)
-            return precisions_per_class[indices]
-        else:
-            raise ValueError("Incorrect type, pass one of the following: \"List[int]\", or \"None\"")
+        precisions_per_class = true_positives / (true_positives + false_positives)
+        recalls_per_class = true_positives / (true_positives + false_negatives)
+        accuracy_per_class = (true_positives + true_negatives) / (true_positives + false_positives + true_negatives + false_negatives)
+        f1_score_per_class = 2 * (precisions_per_class * recalls_per_class) / (precisions_per_class + recalls_per_class)
 
-    @classmethod
-    def calculate_recall(cls, confusion_matrix: npt.NDArray[int], indices=None):
-        true_positives, _, _, false_negatives = cls.calculate_metrics(confusion_matrix)
+        return precisions_per_class, recalls_per_class, f1_score_per_class, accuracy_per_class
 
-        if indices is None:
-            true_positives = np.sum(true_positives)
-            false_negatives = np.sum(false_negatives)
-            return true_positives / (true_positives + false_negatives)
-        elif isinstance(indices, list) and all(isinstance(item, int) for item in indices):
-            recalls_per_class = true_positives / (true_positives + false_negatives)
-            return recalls_per_class[indices]
-        else:
-            raise ValueError("Incorrect type, pass one of the following: \"List[int]\", or \"None\"")
+    class Macro:
+        @classmethod
+        def calculate_overall_metrics(cls, confusion_matrix: npt.NDArray[int]):
+            true_positives, false_positives, false_negatives, false_negatives = (
+                ConfusionMatrx.calculate_per_class_metrics(confusion_matrix))
 
-    @classmethod
-    def calculate_accuracy(cls, confusion_matrix: npt.NDArray[int], indices=None):
-        true_positives, false_positives, true_negatives, false_negatives = cls.calculate_metrics(confusion_matrix)
+            precision = true_positives / (true_positives + false_positives)
+            recall = true_positives / (true_positives + false_negatives)
+            f1_score = 2 * (precision * recall) / (precision + recall)
+            accuracy = np.sum(true_positives) / np.sum(confusion_matrix)
 
-        if indices is None:
-            true_positives = np.sum(true_positives)
-            false_positives = np.sum(false_positives)
-            true_negatives = np.sum(true_negatives)
-            false_negatives = np.sum(false_negatives)
-            return (true_positives + true_negatives) / (
-                    true_positives + false_positives + true_negatives + false_negatives)
-        elif isinstance(indices, list) and all(isinstance(item, int) for item in indices):
-            accuracy_per_class = (true_positives + true_negatives) / (
-                        true_positives + false_positives + true_negatives + false_negatives)
-            return accuracy_per_class[indices]
-        else:
-            raise ValueError("Incorrect type, pass one of the following: \"List[int]\", or \"None\"")
+            mean_precision = np.mean(precision)
+            mean_recall = np.mean(recall)
+            mean_f1_score = np.mean(f1_score)
 
-    @classmethod
-    def calculate_f1_score(cls, confusion_matrix: npt.NDArray[int], indices=None):
-        precision = cls.calculate_precision(confusion_matrix, indices)
-        recall = cls.calculate_recall(confusion_matrix, indices)
-        f1_score_per_class = 2 * (precision * recall) / (precision + recall)
+            return mean_precision, mean_recall, mean_f1_score, accuracy
 
-        if indices is None:
-            return np.sum(f1_score_per_class)
-        elif isinstance(indices, list) and all(isinstance(item, int) for item in indices):
-            return f1_score_per_class[indices]
-        else:
-            raise ValueError("Incorrect type, pass one of the following: \"List[int]\", or \"None\"")
+    class Micro:
+        @classmethod
+        def calculate_overall_metrics(cls, confusion_matrix: npt.NDArray[int]):
+            true_positives, false_positives, false_negatives, _ = (
+                ConfusionMatrx.calculate_confusion_matrix_metrics(confusion_matrix))
+
+            tp_sum = np.sum(true_positives)
+            fp_sum = np.sum(false_positives)
+            fn_sum = np.sum(false_negatives)
+
+            precision = tp_sum / (tp_sum + fp_sum)
+            recall = tp_sum / (tp_sum + fn_sum)
+            f1_score = 2 * (precision * recall) / (precision + recall)
+            accuracy = np.sum(true_positives) / np.sum(confusion_matrix)
+
+            return precision, recall, f1_score, accuracy
+        pass
 
 
 @dataclass
@@ -119,21 +107,3 @@ class TrainingLogger:
 class EvaluationResults:
     raw_tuples: List[Tuple[int, int]]
     confusion_matrix: npt.NDArray[int]
-
-    def total_tests(self):
-        return ConfusionMatrx.total(self.confusion_matrix)
-
-    def calculate_metrics(self):
-        return ConfusionMatrx.calculate_metrics(self.confusion_matrix)
-
-    def calculate_precision(self, indices=None):
-        return ConfusionMatrx.calculate_precision(self.confusion_matrix, indices)
-
-    def calculate_recall(self, indices=None):
-        return ConfusionMatrx.calculate_recall(self.confusion_matrix, indices)
-
-    def calculate_accuracy(self, indices=None):
-        return ConfusionMatrx.calculate_accuracy(self.confusion_matrix, indices)
-
-    def calculate_f1_score(self, indices=None):
-        return ConfusionMatrx.calculate_f1_score(self.confusion_matrix, indices)
