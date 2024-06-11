@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, random_split
 from typing import List, Tuple
-from scripts.model.types import EvaluationResults
+from src.types import EvaluationResults
 
 
 __device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

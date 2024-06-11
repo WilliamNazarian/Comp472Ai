@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from matplotlib.gridspec import GridSpec
 from pipe import *
-from scripts.model.types import *
+from src.types import *
 
 
 cm = ConfusionMatrx

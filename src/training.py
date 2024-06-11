@@ -15,7 +15,7 @@ import numpy.typing as npt
 from typing import List, Callable, Tuple
 from dataclasses import dataclass
 
-from scripts.model.types import TrainingConfig, TrainingLogger, ConfusionMatrx
+from src.types import TrainingConfig, TrainingLogger, ConfusionMatrx
 
 
 cm = ConfusionMatrx

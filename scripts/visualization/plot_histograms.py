@@ -8,7 +8,7 @@ from matplotlib.patches import Patch
 from pipe import *
 
 from scripts import *
-from utils.image import *
+from src.utils.image import *
 
 
 log_base = 2
