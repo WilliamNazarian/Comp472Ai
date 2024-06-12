@@ -8,9 +8,9 @@ from pipe import *
 from src.types import *
 
 
-cm = ConfusionMatrx
-cm_macro = ConfusionMatrx.Macro
-cm_micro = ConfusionMatrx.Micro
+cm = ConfusionMatrix
+cm_macro = ConfusionMatrix.Macro
+cm_micro = ConfusionMatrix.Micro
 
 
 class TrainingVisualizations:

@@ -6,10 +6,26 @@ import numpy.typing as npt
 from torch.utils.data import DataLoader
 from typing import List, Tuple
 from dataclasses import dataclass, field
+from typing import Union
+
+SchedulerType = Union[
+    optim.lr_scheduler.StepLR,
+    optim.lr_scheduler.MultiStepLR,
+    optim.lr_scheduler.ExponentialLR,
+    optim.lr_scheduler.CosineAnnealingLR,
+    optim.lr_scheduler.ReduceLROnPlateau,
+    optim.lr_scheduler.CyclicLR,
+    optim.lr_scheduler.OneCycleLR,
+    optim.lr_scheduler.CosineAnnealingWarmRestarts,
+    optim.lr_scheduler.LambdaLR
+]
 
 
 @dataclass
 class TrainingConfig:
+    # Where models will be saved to
+    models_output_dir: str
+
     # Datasets
     training_set_loader: DataLoader
     validation_set_loader: DataLoader
@@ -17,16 +33,17 @@ class TrainingConfig:
 
     # Training hyperparameters
     epochs: int
-    learning_rate: float
+    # learning_rate: float
 
     classes: List[str]
     model: nn.Module
     criterion: nn.modules.loss._Loss
     optimizer: optim.Optimizer
+    scheduler: SchedulerType
 
 
 # "Static" class for reasoning about an N x N confusion matrix
-class ConfusionMatrx:
+class ConfusionMatrix:
     @classmethod
     def total(cls, confusion_matrix: npt.NDArray[int]):
         return np.sum(confusion_matrix)
@@ -54,8 +71,8 @@ class ConfusionMatrx:
     class Macro:
         @classmethod
         def calculate_overall_metrics(cls, confusion_matrix: npt.NDArray[int]):
-            true_positives, false_positives, false_negatives, false_negatives = (
-                ConfusionMatrx.calculate_per_class_metrics(confusion_matrix))
+            true_positives, false_positives, true_negatives, false_negatives = (
+                ConfusionMatrix.calculate_confusion_matrix_metrics(confusion_matrix))
 
             precision = true_positives / (true_positives + false_positives)
             recall = true_positives / (true_positives + false_negatives)
@@ -71,8 +88,8 @@ class ConfusionMatrx:
     class Micro:
         @classmethod
         def calculate_overall_metrics(cls, confusion_matrix: npt.NDArray[int]):
-            true_positives, false_positives, false_negatives, _ = (
-                ConfusionMatrx.calculate_confusion_matrix_metrics(confusion_matrix))
+            true_positives, false_positives, true_negatives, false_negatives = (
+                ConfusionMatrix.calculate_confusion_matrix_metrics(confusion_matrix))
 
             tp_sum = np.sum(true_positives)
             fp_sum = np.sum(false_positives)
@@ -84,7 +101,6 @@ class ConfusionMatrx:
             accuracy = np.sum(true_positives) / np.sum(confusion_matrix)
 
             return precision, recall, f1_score, accuracy
-        pass
 
 
 @dataclass
