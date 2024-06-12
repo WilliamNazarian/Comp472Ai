@@ -60,7 +60,6 @@ class TrainingVisualizations:
 
     @staticmethod
     def plot_training_metrics(training_logger: TrainingLogger):
-
         # preparing the data
         overall_metrics = TrainingVisualizations.__get_overall_training_metrics(training_logger)
         precisions_per_class = TrainingVisualizations.__process_metric_history(training_logger.training_precision_history)

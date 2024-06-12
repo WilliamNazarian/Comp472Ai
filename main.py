@@ -1,12 +1,13 @@
+import sys
 import torch
-import pickle
+import logging
 import os.path
-import torch.nn as nn
 import scripts.data_loader as data_loader
 import src.training as training
 import src.evaluation as evaluation
 
 from pick import pick
+from tabulate import tabulate
 from rich.prompt import Prompt, Confirm
 from src.types import *
 from src.models.main_model import OB_05Model
@@ -41,6 +42,15 @@ def main():
     if not os.path.exists(model_output_dir):
         os.makedirs(model_output_dir)
 
+    training_data_output_dir = os.path.join(model_output_dir, "training")
+    testing_data_output_dir = os.path.join(model_output_dir, "testing")
+
+    if not os.path.exists(training_data_output_dir):
+        os.makedirs(training_data_output_dir)
+
+    if not os.path.exists(testing_data_output_dir):
+        os.makedirs(testing_data_output_dir)
+
     # initialize datasets
     training_dataset, validation_dataset, testing_dataset = data_loader.split_images_dataset()
     torch.save(training_dataset, os.path.join(model_output_dir, "training_dataset.pth"))
@@ -65,9 +75,13 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate, weight_decay=5e-2)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5)
 
+    training_log_file_path = os.path.join(training_data_output_dir, "training_log.txt")
+    training_logger = initialize_logger("training_logger", training_log_file_path)
+
     training_config = training.TrainingConfig(
         model_name=model_name,
         output_dir=model_output_dir,
+        output_logger=training_logger,
 
         training_set_loader=training_set_loader,
         validation_set_loader=validation_set_loader,
@@ -83,37 +97,87 @@ def main():
     )
 
     # training
+    print("------------------------------ Training log ------------------------------")
     training_logger = training.train_model(training_config)
     torch.save(model.state_dict(), os.path.join(model_output_dir, "model.pth"))
-
-    # generating output directories
-    training_data_output_dir = os.path.join(model_output_dir, "training")
-    testing_data_output_dir = os.path.join(model_output_dir, "testing")
-
-    if not os.path.exists(training_data_output_dir):
-        os.makedirs(training_data_output_dir)
-
-    if not os.path.exists(testing_data_output_dir):
-        os.makedirs(testing_data_output_dir)
+    print("--------------------------- End of training log ---------------------------\n\n")
 
     # save training data/visualizations
     fig = TrainingVisualizations.plot_training_metrics(training_logger)
-    fig.savefig(os.path.join(training_data_output_dir, "training_metrics.png"))
+    training_metrics_img_path = os.path.join(training_data_output_dir, "training_metrics.png")
+    fig.savefig(training_metrics_img_path)
+
+    print(f"Training log file saved at:\n\t{training_log_file_path}\n")
+    print(f"Training metrics visualization saved at:\n\t{training_metrics_img_path}")
 
     # testing & saving testing data/visualizations
-    evaluation_results = evaluation.evaluate_model(model, testing_set_loader)
+    testing_log_file_path = os.path.join(testing_data_output_dir, "testing_logger.txt")
+    testing_logger = initialize_logger("testing_logger", testing_log_file_path)
 
-    fig = TestingVisualizations.plot_metrics_per_class(evaluation_results)
-    fig.savefig(os.path.join(testing_data_output_dir, "metrics_per_class_bar_graph.png"))
+    print("\n")
+    print("------------------------------ Testing log ------------------------------")
+    evaluation_results = evaluation.evaluate_model(testing_logger, model, testing_set_loader)
+    print("--------------------------- End of Testing log ---------------------------\n\n")
 
-    fig = TestingVisualizations.generate_metrics_per_class_table(evaluation_results)
-    fig.savefig(os.path.join(testing_data_output_dir, "metrics_per_class_table.png"))
+    print(f"Testing log file saved at:\n\t{testing_log_file_path}\n")
 
-    fig = TestingVisualizations.generate_overall_metrics_table(evaluation_results)
-    fig.savefig(os.path.join(testing_data_output_dir, "overall_metrics_table.png"))
+    __print_evaluation_results(evaluation_results)
 
-    fig = TestingVisualizations.generate_confusion_matrix_table(evaluation_results)
-    fig.savefig(os.path.join(testing_data_output_dir, "confusion_matrix.png"))
+    fig_filename_pairs = [
+        [TestingVisualizations.plot_metrics_per_class(evaluation_results), "metrics_per_class_bar_graph.png"],
+        [TestingVisualizations.generate_metrics_per_class_table(evaluation_results), "metrics_per_class_table.png"],
+        [TestingVisualizations.generate_overall_metrics_table(evaluation_results), "overall_metrics_table.png"],
+        [TestingVisualizations.generate_confusion_matrix_table(evaluation_results), "confusion_matrix.png"]
+    ]
+
+    print("\n\nSaved Visualizations:")
+    for fig, file_name in fig_filename_pairs:
+        file_path = os.path.join(testing_data_output_dir, file_name)
+        fig.savefig(file_path)
+        print(f"File \"{file_name}\" saved at:\n\t{file_path}\n")
+
+
+def initialize_logger(logger_name: str, log_file_path: str):
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    file_handler = logging.FileHandler(log_file_path)
+
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+    return logger
+
+
+def __print_evaluation_results(evaluation_results: EvaluationResults):
+    confusion_matrix_df = EvaluationResults.get_confusion_matrix_as_df(evaluation_results)
+    print("\nConfusion matrix:")
+    print(tabulate(confusion_matrix_df, headers=["anger", "engaged", "happy", "neutral"]))
+
+    metrics_per_class_df = EvaluationResults.get_metrics_per_class_as_df(evaluation_results)
+    print("\n\n\nMetrics per class:")
+    print(tabulate(metrics_per_class_df, headers=["anger", "engaged", "happy", "neutral"]))
+
+    macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
+        evaluation_results.confusion_matrix)
+    micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
+        evaluation_results.confusion_matrix)
+    accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
+
+    print(
+        f'\n\nFinal performance metrics:\n'
+        f'MACRO precision: {macro_precision:.4f}\n'
+        f'MACRO recall: {macro_recall:.4f}\n'
+        f'MACRO f1_score: {macro_f1_score:.4f}\n'
+        f'MICRO precision: {micro_precision:.4f}\n'
+        f'MICRO recall: {micro_recall:.4f}\n'
+        f'MICRO f1_score: {micro_f1_score:.4f}\n'
+        f'Accuracy: {accuracy:.4f}')
 
 
 if __name__ == '__main__':

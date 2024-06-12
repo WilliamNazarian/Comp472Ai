@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
@@ -33,6 +34,7 @@ class TrainingConfig:
     # Where models will be saved to
     model_name: str
     output_dir: str
+    output_logger: Union[logging.Logger, None]
 
     # Datasets
     training_set_loader: DataLoader
@@ -68,17 +70,13 @@ class TrainingLogger:
 
 @dataclass(frozen=True)  # 'frozen=True' means type is immutable
 class EvaluationResults:
-    raw_tuples: List[Tuple[int, int]]
     confusion_matrix: npt.NDArray[int]
 
-    @staticmethod
-    def get_metrics_table_as_df(evaluation_results: 'EvaluationResults') -> pd.DataFrame:
-        confusion_matrix = evaluation_results.confusion_matrix
-
+    def get_metrics_table_as_df(self) -> pd.DataFrame:
         macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
-            confusion_matrix)
+            self.confusion_matrix)
         micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
-            confusion_matrix)
+            self.confusion_matrix)
         accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
 
         data = [
@@ -92,21 +90,15 @@ class EvaluationResults:
 
         return df
 
-    @staticmethod
-    def get_confusion_matrix_as_df(evaluation_results: 'EvaluationResults') -> pd.DataFrame:
-        confusion_matrix = evaluation_results.confusion_matrix
-
-        df = pd.DataFrame(confusion_matrix,
+    def get_confusion_matrix_as_df(self) -> pd.DataFrame:
+        df = pd.DataFrame(self.confusion_matrix,
                           index=pd.Index(["anger", "engaged", "happy", "neutral"]),
                           columns=pd.Index(["anger", "engaged", "happy", "neutral"]))
 
         return df
 
-    @staticmethod
-    def get_metrics_per_class_as_df(evaluation_results: 'EvaluationResults') -> pd.DataFrame:
-        confusion_matrix = evaluation_results.confusion_matrix
-
-        precisions, recalls, f1_scores, accuracies = cm.calculate_per_class_metrics(confusion_matrix)
+    def get_metrics_per_class_as_df(self) -> pd.DataFrame:
+        precisions, recalls, f1_scores, accuracies = cm.calculate_per_class_metrics(self.confusion_matrix)
         array = [precisions, recalls, f1_scores, accuracies]
 
         df = pd.DataFrame(array,

@@ -2,22 +2,12 @@ import os.path
 
 import pickle
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.transforms as transforms
-import torch.cuda as cuda
-import torchvision.datasets as datasets
-from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt
 import numpy as np
-import torch.optim as optim
-from torch.autograd import Variable
-from torch.utils.data import DataLoader, random_split
-
+import torch.nn as nn
 import numpy.typing as npt
-from typing import List, Callable, Tuple
-from dataclasses import dataclass
+import torch.nn.functional as F
 
+from torch.autograd import Variable
 from src.types import TrainingConfig, TrainingLogger
 from src.utils.confusion_matrix import ConfusionMatrix
 
@@ -179,6 +169,8 @@ def __calculate_metrics(training_logger: TrainingLogger):
 
 
 def __print(epoch, total_epochs, training_config: TrainingConfig, training_logger: TrainingLogger):
+    if training_config.output_logger is None:
+        return
 
     # pulling metrics
     training_precision = np.average(training_logger.training_precision_history[-1])
@@ -191,7 +183,13 @@ def __print(epoch, total_epochs, training_config: TrainingConfig, training_logge
     validation_accuracy = np.average(training_logger.validation_accuracy_history[-1])
     validation_f1_score = np.average(training_logger.validation_f1_score_history[-1])
 
-    print(f'Epoch {epoch + 1}/{total_epochs}:\n'
+    learning_rates_str = "\n".join(
+        f"\tLearning rate for param group \"{i}\": {param_group['lr']}"
+        for i, param_group in enumerate(training_config.optimizer.param_groups)
+    )
+
+    training_config.output_logger.info(
+          f'\nEpoch {epoch + 1}/{total_epochs}:\n'
           f'\tTraining precision: {training_precision:.4f}\n'
           f'\tTraining recall: {training_recall:.4f}\n'
           f'\tTraining accuracy: {training_accuracy:.4f}\n'
@@ -199,7 +197,6 @@ def __print(epoch, total_epochs, training_config: TrainingConfig, training_logge
           f'\tValidation precision: {validation_precision:.4f}\n'
           f'\tValidation recall: {validation_recall:.4f}\n'
           f'\tValidation accuracy: {validation_accuracy:.4f}\n'
-          f'\tValidation f1-score: {validation_f1_score:.4f}')
-
-    for param_group in training_config.optimizer.param_groups:
-        print(f"\tLearning rate: {param_group['lr']}\n\n")
+          f'\tValidation f1-score: {validation_f1_score:.4f}\n'
+          f'{learning_rates_str}'
+    )
