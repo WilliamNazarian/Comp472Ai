@@ -20,9 +20,10 @@ __stddev_gray = 0.3081
 
 __transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
-    transforms.Resize((28, 28)),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(10),
     transforms.ToTensor(),
-    transforms.Normalize((__mean_gray,), (__stddev_gray,))
+    transforms.Normalize((0.5,), (0.5,))
 ])
 
 # Dataloader settings

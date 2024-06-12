@@ -1,3 +1,4 @@
+import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
@@ -6,10 +7,33 @@ import numpy.typing as npt
 from torch.utils.data import DataLoader
 from typing import List, Tuple
 from dataclasses import dataclass, field
+from typing import Union
+from src.utils.confusion_matrix import ConfusionMatrix
+
+cm = ConfusionMatrix
+cm_macro = ConfusionMatrix.Macro
+cm_micro = ConfusionMatrix.Micro
+
+
+SchedulerType = Union[
+    optim.lr_scheduler.StepLR,
+    optim.lr_scheduler.MultiStepLR,
+    optim.lr_scheduler.ExponentialLR,
+    optim.lr_scheduler.CosineAnnealingLR,
+    optim.lr_scheduler.ReduceLROnPlateau,
+    optim.lr_scheduler.CyclicLR,
+    optim.lr_scheduler.OneCycleLR,
+    optim.lr_scheduler.CosineAnnealingWarmRestarts,
+    optim.lr_scheduler.LambdaLR
+]
 
 
 @dataclass
 class TrainingConfig:
+    # Where models will be saved to
+    model_name: str
+    output_dir: str
+
     # Datasets
     training_set_loader: DataLoader
     validation_set_loader: DataLoader
@@ -17,74 +41,13 @@ class TrainingConfig:
 
     # Training hyperparameters
     epochs: int
-    learning_rate: float
+    # learning_rate: float
 
     classes: List[str]
     model: nn.Module
     criterion: nn.modules.loss._Loss
     optimizer: optim.Optimizer
-
-
-# "Static" class for reasoning about an N x N confusion matrix
-class ConfusionMatrx:
-    @classmethod
-    def total(cls, confusion_matrix: npt.NDArray[int]):
-        return np.sum(confusion_matrix)
-
-    @classmethod
-    def calculate_confusion_matrix_metrics(cls, confusion_matrix: npt.NDArray[int]):
-        true_positives = np.diag(confusion_matrix)
-        false_positives = np.sum(confusion_matrix, axis=0) - true_positives
-        false_negatives = np.sum(confusion_matrix, axis=1) - true_positives
-        true_negatives = np.sum(confusion_matrix) - (true_positives + false_positives + false_negatives)
-        return true_positives, false_positives, true_negatives, false_negatives
-
-    @classmethod
-    def calculate_per_class_metrics(cls, confusion_matrix: npt.NDArray[int]):
-        true_positives, false_positives, true_negatives, false_negatives = (
-            cls.calculate_confusion_matrix_metrics(confusion_matrix))
-
-        precisions_per_class = true_positives / (true_positives + false_positives)
-        recalls_per_class = true_positives / (true_positives + false_negatives)
-        accuracy_per_class = (true_positives + true_negatives) / (true_positives + false_positives + true_negatives + false_negatives)
-        f1_score_per_class = 2 * (precisions_per_class * recalls_per_class) / (precisions_per_class + recalls_per_class)
-
-        return precisions_per_class, recalls_per_class, f1_score_per_class, accuracy_per_class
-
-    class Macro:
-        @classmethod
-        def calculate_overall_metrics(cls, confusion_matrix: npt.NDArray[int]):
-            true_positives, false_positives, false_negatives, false_negatives = (
-                ConfusionMatrx.calculate_per_class_metrics(confusion_matrix))
-
-            precision = true_positives / (true_positives + false_positives)
-            recall = true_positives / (true_positives + false_negatives)
-            f1_score = 2 * (precision * recall) / (precision + recall)
-            accuracy = np.sum(true_positives) / np.sum(confusion_matrix)
-
-            mean_precision = np.mean(precision)
-            mean_recall = np.mean(recall)
-            mean_f1_score = np.mean(f1_score)
-
-            return mean_precision, mean_recall, mean_f1_score, accuracy
-
-    class Micro:
-        @classmethod
-        def calculate_overall_metrics(cls, confusion_matrix: npt.NDArray[int]):
-            true_positives, false_positives, false_negatives, _ = (
-                ConfusionMatrx.calculate_confusion_matrix_metrics(confusion_matrix))
-
-            tp_sum = np.sum(true_positives)
-            fp_sum = np.sum(false_positives)
-            fn_sum = np.sum(false_negatives)
-
-            precision = tp_sum / (tp_sum + fp_sum)
-            recall = tp_sum / (tp_sum + fn_sum)
-            f1_score = 2 * (precision * recall) / (precision + recall)
-            accuracy = np.sum(true_positives) / np.sum(confusion_matrix)
-
-            return precision, recall, f1_score, accuracy
-        pass
+    scheduler: SchedulerType
 
 
 @dataclass
@@ -107,3 +70,46 @@ class TrainingLogger:
 class EvaluationResults:
     raw_tuples: List[Tuple[int, int]]
     confusion_matrix: npt.NDArray[int]
+
+    @staticmethod
+    def get_metrics_table_as_df(evaluation_results: 'EvaluationResults') -> pd.DataFrame:
+        confusion_matrix = evaluation_results.confusion_matrix
+
+        macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
+            confusion_matrix)
+        micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
+            confusion_matrix)
+        accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
+
+        data = [
+            [macro_precision, macro_recall, macro_f1_score, micro_precision, micro_recall, micro_f1_score, accuracy]]
+        tuples = [("macro", "precision"), ("macro", "recall"), ("macro", "f1_score"), ("micro", "precision"),
+                  ("micro", "recall"), ("micro", "f1_score"), ("", "accuracy")]
+
+        df = pd.DataFrame(data,
+                          index=pd.Index(["model"]),
+                          columns=pd.MultiIndex.from_tuples(tuples, names=["", "metrics"]))
+
+        return df
+
+    @staticmethod
+    def get_confusion_matrix_as_df(evaluation_results: 'EvaluationResults') -> pd.DataFrame:
+        confusion_matrix = evaluation_results.confusion_matrix
+
+        df = pd.DataFrame(confusion_matrix,
+                          index=pd.Index(["anger", "engaged", "happy", "neutral"]),
+                          columns=pd.Index(["anger", "engaged", "happy", "neutral"]))
+
+        return df
+
+    @staticmethod
+    def get_metrics_per_class_as_df(evaluation_results: 'EvaluationResults') -> pd.DataFrame:
+        confusion_matrix = evaluation_results.confusion_matrix
+
+        precisions, recalls, f1_scores, accuracies = cm.calculate_per_class_metrics(confusion_matrix)
+        array = [precisions, recalls, f1_scores, accuracies]
+
+        df = pd.DataFrame(array,
+                          index=pd.Index(["precision", "recall", "f1_score", "accuracy"]),
+                          columns=pd.Index(["anger", "engaged", "happy", "neutral"]))
+        return df
