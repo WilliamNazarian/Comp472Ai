@@ -18,7 +18,8 @@ import numpy.typing as npt
 from typing import List, Callable, Tuple
 from dataclasses import dataclass
 
-from src.types import TrainingConfig, TrainingLogger, ConfusionMatrix
+from src.types import TrainingConfig, TrainingLogger
+from src.utils.confusion_matrix import ConfusionMatrix
 
 
 # TODO: Add support for tracking the following metrics during training and validation: 'loss'
@@ -33,6 +34,11 @@ __device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 __num_classes = 4
 
 
+def __init_weights(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+        nn.init.kaiming_normal_(m.weight)
+
+
 def train_model(training_config: TrainingConfig) -> TrainingLogger:
     best_validation_loss = float("inf")
     patience = 10
@@ -41,6 +47,7 @@ def train_model(training_config: TrainingConfig) -> TrainingLogger:
     training_logger = TrainingLogger()
 
     model = training_config.model
+    model.apply(__init_weights)
     model.to(__device)
     scheduler = training_config.scheduler
 
@@ -66,10 +73,10 @@ def train_model(training_config: TrainingConfig) -> TrainingLogger:
             trigger_times = 0
 
             # save training logger + model
-            with open(os.path.join(training_config.models_output_dir, "training_logger.pkl"), "wb") as file:
+            with open(os.path.join(training_config.output_dir, "training_logger.pkl"), "wb") as file:
                 pickle.dump(training_logger, file)
 
-            torch.save(model.state_dict(), os.path.join(training_config.models_output_dir, "best_model.pth"))
+            torch.save(model.state_dict(), os.path.join(training_config.output_dir, "best_model.pth"))
         else:
             trigger_times += 1
             if trigger_times >= patience:
