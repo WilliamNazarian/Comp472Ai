@@ -58,6 +58,19 @@ $ py -m scripts.image_sampler happy
     ...
 ```
 
+### Train and Evaluate CNN Model
+To train and evaluate the model first run the following command in the root of our project
+```shell
+python main.py
+```
+Then you will be asked to choose one of our different types of models to train the facial expression images
+1. Main Model
+2. Variant 1
+3. Variant 2
+
+After picking you will be asked to name the CNN to whatever you would like.
+Finally, you get the see the training process and how the model improves after each epoch reducing the value of its loss function and increasing the accuracy
+
 <br>
 
 ## Project Contents
