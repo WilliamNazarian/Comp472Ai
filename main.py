@@ -87,7 +87,7 @@ def main():
         validation_set_loader=validation_set_loader,
         testing_set_loader=testing_set_loader,
 
-        epochs=1,
+        epochs=100,
 
         classes=data_loader.get_trainset().classes,
         model=model,
