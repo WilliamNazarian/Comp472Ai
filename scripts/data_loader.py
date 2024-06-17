@@ -1,24 +1,27 @@
 import os
 import pickle
 
+import pipe
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import pandas as pd
 
+from typing import List
+from dataclasses import dataclass, field
+from pipe import *
 from torch.utils.data import DataLoader, random_split
-
 
 # Get the current file's directory
 __current_file_dir = os.path.dirname(os.path.abspath(__file__))
 __project_root = os.path.abspath(os.path.join(__current_file_dir, os.pardir))
-__greyscale_images_directory = os.path.abspath(os.path.join(__project_root, r".\part1\cleaned_images"))
-__colored_images_directory = os.path.abspath(os.path.join(__project_root, r".\part1\structured_data"))
+greyscale_images_directory = os.path.abspath(os.path.join(__project_root, r".\part1\cleaned_images"))
+colored_images_directory = os.path.abspath(os.path.join(__project_root, r".\part1\structured_data"))
 
 __mean_gray = 0.1307
 __stddev_gray = 0.3081
 
-__transform = transforms.Compose([
+transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
     transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(10),
@@ -27,9 +30,9 @@ __transform = transforms.Compose([
 ])
 
 # Dataloader settings
-__shuffle = True
-__num_workers = 4
-__pin_memory = True
+shuffle = True
+num_workers = 4
+pin_memory = True
 
 
 def get_metadata():
@@ -40,14 +43,14 @@ def get_metadata():
 
 
 def get_trainset(use_colored=False):
-    images_directory = __colored_images_directory if use_colored else __greyscale_images_directory
-    return datasets.ImageFolder(root=images_directory, transform=__transform)
+    images_directory = colored_images_directory if use_colored else greyscale_images_directory
+    return datasets.ImageFolder(root=images_directory, transform=transform)
 
 
 # Splits the dataset to training, validation, and test sub-datasets
-def split_images_dataset(use_colored=False) -> (DataLoader, DataLoader, DataLoader):
-    images_directory = __colored_images_directory if use_colored else __greyscale_images_directory
-    trainset = datasets.ImageFolder(root=images_directory, transform=__transform)
+def split_images_dataset(use_colored=False):
+    images_directory = colored_images_directory if use_colored else greyscale_images_directory
+    trainset = datasets.ImageFolder(root=images_directory, transform=transform)
 
     training_ratio = 0.7  # x% of the dataset is for training
     validation_ratio = 0.15  # y% of the dataset is for validation
@@ -69,4 +72,44 @@ def split_images_dataset(use_colored=False) -> (DataLoader, DataLoader, DataLoad
 
 
 def create_data_loader(dataset):
-    return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=__num_workers, pin_memory=__pin_memory)
+    return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
+
+
+class KFold:
+    @staticmethod
+    def split_into_n_sub_datasets(folds: int):
+        """
+
+        :param folds:
+        :return:
+        """
+        global greyscale_images_directory
+        global transform
+
+        trainset = datasets.ImageFolder(root=greyscale_images_directory, transform=transform)
+        trainset_len = len(trainset)
+
+        ratio = 1 / folds
+        fold_len = int(trainset_len * ratio)
+        last_fold_len = trainset_len - (folds - 1) * fold_len
+
+        lengths = ([fold_len] * (folds - 1)) + [last_fold_len]
+        return random_split(trainset, lengths)
+
+
+"""
+    @staticmethod
+    def generate_data_loaders_from_sub_datasets(sub_datasets):
+    global shuffle
+    global num_workers
+    global pin_memory
+
+    data_loaders = []
+    for sub_dataset in sub_datasets:
+        as_data_loader = (
+            DataLoader(sub_dataset, batch_size=32, shuffle=shuffle, num_workers=num_workers, pin_memory=pin_memory))
+        data_loaders.append(as_data_loader)
+
+    return data_loaders
+"""
+
