@@ -37,7 +37,7 @@ def evaluate_model(logger: logging.Logger, model: nn.Module, dataloader: DataLoa
 
             # add to confusion matrix
             for expected, actual in list(zip(expected, actual)):
-                confusion_matrix[expected, actual] += 1
+                confusion_matrix[actual, expected] += 1
 
             __print_confusion_matrix_metrics(logger, current_batch, confusion_matrix)
             current_batch += 1

@@ -67,7 +67,7 @@ def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[T
             training_logger.validation_confusion_matrix_history.append(validation_confusion_matrix)
 
             # c. calculating performance metrics
-            training.calcualte_metrics(training_logger)
+            training.calculate_metrics(training_logger)
 
             # d. early stopping stuff
             scheduler.step(validation_loss)

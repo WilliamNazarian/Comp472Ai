@@ -58,7 +58,7 @@ def train_model(training_config: TrainingConfig) -> TrainingLogger:
         training_logger.validation_confusion_matrix_history.append(validation_confusion_matrix)
 
         # calculate macro/micro metrics
-        calcualte_metrics(training_logger)
+        calculate_metrics(training_logger)
 
         # early stopping stuff ig
         scheduler.step(validation_loss)
@@ -103,7 +103,7 @@ def train(training_set_loader, model, criterion, optimizer):
         # build confusion matrix
         _, predicted = torch.max(outputs.data, 1)
         for expected, actual in list(zip(labels.tolist(), predicted.tolist())):
-            confusion_matrix[expected, actual] += 1
+            confusion_matrix[actual, expected] += 1
 
         # update outside values
         running_loss += loss.item() * inputs.size(0)
@@ -128,7 +128,7 @@ def validate(validation_set_loader, model):
             # build confusion matrix
             _, predicted = torch.max(outputs.data, 1)
             for expected, actual in list(zip(labels.tolist(), predicted.tolist())):
-                confusion_matrix[expected, actual] += 1
+                confusion_matrix[actual, expected] += 1
 
             # update outside values
             loss = F.cross_entropy(outputs, labels)
@@ -140,7 +140,7 @@ def validate(validation_set_loader, model):
     return confusion_matrix, validation_loss
 
 
-def calcualte_metrics(training_logger: TrainingLogger):
+def calculate_metrics(training_logger: TrainingLogger):
     training_confusion_matrix = training_logger.training_confusion_matrix_history[-1]
     validation_confusion_matrix = training_logger.validation_confusion_matrix_history[-1]
 
