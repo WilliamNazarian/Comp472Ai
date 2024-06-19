@@ -21,10 +21,19 @@ class ConfusionMatrix:
         true_positives, false_positives, true_negatives, false_negatives = (
             cls.calculate_confusion_matrix_metrics(confusion_matrix))
 
-        precisions_per_class = true_positives / (true_positives + false_positives)
-        recalls_per_class = true_positives / (true_positives + false_negatives)
-        accuracy_per_class = (true_positives + true_negatives) / (true_positives + false_positives + true_negatives + false_negatives)
-        f1_score_per_class = 2 * (precisions_per_class * recalls_per_class) / (precisions_per_class + recalls_per_class)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            precisions_per_class = np.where((true_positives + false_positives) != 0,
+                                            true_positives / (true_positives + false_positives),
+                                            0)
+            recalls_per_class = np.where((true_positives + false_negatives) != 0,
+                                         true_positives / (true_positives + false_negatives),
+                                         0)
+            accuracy_per_class = np.where((true_positives + false_positives + true_negatives + false_negatives) != 0,
+                                          (true_positives + true_negatives) / (true_positives + false_positives + true_negatives + false_negatives),
+                                          0)
+            f1_score_per_class = np.where((precisions_per_class + recalls_per_class) != 0,
+                                          2 * (precisions_per_class * recalls_per_class) / (precisions_per_class + recalls_per_class),
+                                          0)
 
         return precisions_per_class, recalls_per_class, f1_score_per_class, accuracy_per_class
 
@@ -34,10 +43,19 @@ class ConfusionMatrix:
             true_positives, false_positives, true_negatives, false_negatives = (
                 ConfusionMatrix.calculate_confusion_matrix_metrics(confusion_matrix))
 
-            precision = true_positives / (true_positives + false_positives)
-            recall = true_positives / (true_positives + false_negatives)
-            f1_score = 2 * (precision * recall) / (precision + recall)
-            accuracy = np.sum(true_positives) / np.sum(confusion_matrix)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                precision = np.where((true_positives + false_positives) != 0,
+                                     true_positives / (true_positives + false_positives),
+                                     0)
+                recall = np.where((true_positives + false_negatives) != 0,
+                                  true_positives / (true_positives + false_negatives),
+                                  0)
+                f1_score = np.where((precision + recall) != 0,
+                                    2 * (precision * recall) / (precision + recall),
+                                    0)
+                accuracy = np.where(np.sum(confusion_matrix),
+                                    np.sum(true_positives) / np.sum(confusion_matrix),
+                                    0)
 
             mean_precision = np.mean(precision)
             mean_recall = np.mean(recall)
@@ -55,9 +73,18 @@ class ConfusionMatrix:
             fp_sum = np.sum(false_positives)
             fn_sum = np.sum(false_negatives)
 
-            precision = tp_sum / (tp_sum + fp_sum)
-            recall = tp_sum / (tp_sum + fn_sum)
-            f1_score = 2 * (precision * recall) / (precision + recall)
-            accuracy = np.sum(true_positives) / np.sum(confusion_matrix)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                precision = np.where((tp_sum + fp_sum),
+                                     tp_sum / (tp_sum + fp_sum),
+                                     0)
+                recall = np.where((tp_sum + fn_sum),
+                                  tp_sum / (tp_sum + fn_sum),
+                                  0)
+                f1_score = np.where((precision + recall),
+                                    2 * (precision * recall) / (precision + recall),
+                                    0)
+                accuracy = np.where(np.sum(confusion_matrix),
+                                    np.sum(true_positives) / np.sum(confusion_matrix),
+                                    0)
 
             return precision, recall, f1_score, accuracy
