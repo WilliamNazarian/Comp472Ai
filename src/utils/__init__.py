@@ -1,5 +1,5 @@
-from confusion_matrix import ConfusionMatrix
-from image import *
+from .confusion_matrix import ConfusionMatrix
+from .image import *
 
 cm = ConfusionMatrix
 cm_macro = ConfusionMatrix.Macro

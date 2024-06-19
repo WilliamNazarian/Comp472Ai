@@ -9,8 +9,8 @@ from torch.utils.data import DataLoader, random_split
 # Get the current file's directory
 __current_file_dir = os.path.dirname(os.path.abspath(__file__))
 __project_root = os.path.abspath(os.path.join(__current_file_dir, os.pardir))
-greyscale_images_directory = os.path.abspath(os.path.join(__project_root, r".\part1\cleaned_images"))
-colored_images_directory = os.path.abspath(os.path.join(__project_root, r".\part1\structured_data"))
+greyscale_images_directory = os.path.abspath(os.path.join(__project_root, r".\dataset\cleaned_images"))
+colored_images_directory = os.path.abspath(os.path.join(__project_root, r".\dataset\structured_data"))
 
 __mean_gray = 0.1307
 __stddev_gray = 0.3081
