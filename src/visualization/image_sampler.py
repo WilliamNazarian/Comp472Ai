@@ -2,7 +2,7 @@
 import os.path
 from typing import List, Callable
 from collections import deque
-from scripts.data_loader import get_metadata
+from src.data_loader import get_metadata
 from src.utils.image import *
 
 import sys
@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import matplotlib.gridspec as gridspec
 
-import scripts.visualization.plot_histograms as hist
+import src.visualization.plot_histograms as hist
 
 
 # Defining aliases

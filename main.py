@@ -2,18 +2,17 @@ import sys
 import torch
 import logging
 import os.path
-import scripts.data_loader as data_loader
+import src.data_loader as data_loader
 import src.training as training
 import src.evaluation as evaluation
 
 from pick import pick
-from tabulate import tabulate
 from rich.prompt import Prompt, Confirm
 from src.types import *
 from src.models.main_model import OB_05Model
 from src.models.main_model_v1 import OB_05Model_Variant1
 from src.models.main_model_v2 import OB_05Model_Variant2
-from scripts.visualization.model_evaluation import TrainingVisualizations, TestingVisualizations
+from src.visualization.model_evaluation import TrainingVisualizations, TestingVisualizations
 
 
 project_root_directory = os.path.join(os.path.abspath(__file__), "..")
@@ -121,7 +120,7 @@ def main():
 
     print(f"Testing log file saved at:\n\t{testing_log_file_path}\n")
 
-    __print_evaluation_results(evaluation_results)
+    evaluation_results.print_extensive_summary()
 
     fig_filename_pairs = [
         [TestingVisualizations.plot_metrics_per_class(evaluation_results), "metrics_per_class_bar_graph.png"],
@@ -152,32 +151,6 @@ def initialize_logger(logger_name: str, log_file_path: str):
     logger.addHandler(file_handler)
 
     return logger
-
-
-def __print_evaluation_results(evaluation_results: EvaluationResults):
-    confusion_matrix_df = EvaluationResults.get_confusion_matrix_as_df(evaluation_results)
-    print("\nConfusion matrix:")
-    print(tabulate(confusion_matrix_df, headers=["anger", "engaged", "happy", "neutral"]))
-
-    metrics_per_class_df = EvaluationResults.get_metrics_per_class_as_df(evaluation_results)
-    print("\n\n\nMetrics per class:")
-    print(tabulate(metrics_per_class_df, headers=["anger", "engaged", "happy", "neutral"]))
-
-    macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
-        evaluation_results.confusion_matrix)
-    micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
-        evaluation_results.confusion_matrix)
-    accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
-
-    print(
-        f'\n\nFinal performance metrics:\n'
-        f'MACRO precision: {macro_precision:.4f}\n'
-        f'MACRO recall: {macro_recall:.4f}\n'
-        f'MACRO f1_score: {macro_f1_score:.4f}\n'
-        f'MICRO precision: {micro_precision:.4f}\n'
-        f'MICRO recall: {micro_recall:.4f}\n'
-        f'MICRO f1_score: {micro_f1_score:.4f}\n'
-        f'Accuracy: {accuracy:.4f}')
 
 
 if __name__ == '__main__':
