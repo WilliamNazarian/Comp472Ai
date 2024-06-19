@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pipe import *
-from scripts import *
+from src.data_loader import get_metadata
 
 
 def plot_classes_distribution() -> None:

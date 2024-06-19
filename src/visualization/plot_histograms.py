@@ -1,14 +1,14 @@
-from typing import List, Callable
-
+import math
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import math
 
+from typing import List, Callable
 from matplotlib.patches import Patch
 from pipe import *
 
-from scripts import *
 from src.utils.image import *
+from src.data_loader import get_metadata
 
 
 log_base = 2

@@ -2,7 +2,7 @@ import sys
 import torch
 import logging
 import os.path
-import scripts.data_loader as data_loader
+import src.data_loader as data_loader
 import src.training as training
 import src.evaluation as evaluation
 
@@ -12,7 +12,7 @@ from src.types import *
 from src.models.main_model import OB_05Model
 from src.models.main_model_v1 import OB_05Model_Variant1
 from src.models.main_model_v2 import OB_05Model_Variant2
-from scripts.visualization.model_evaluation import TrainingVisualizations, TestingVisualizations
+from src.visualization.model_evaluation import TrainingVisualizations, TestingVisualizations
 
 
 project_root_directory = os.path.join(os.path.abspath(__file__), "..")

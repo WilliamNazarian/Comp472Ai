@@ -9,7 +9,7 @@ from typing import List, Tuple
 from torch.utils.data import random_split, DataLoader
 from torch.utils.data.dataset import ConcatDataset
 from src.types import TrainingLogger, EvaluationResults
-from scripts.data_loader import create_data_loader
+from src.data_loader import create_data_loader
 from src.kfold.kfold_training_config import KFoldTrainingConfig
 
 
