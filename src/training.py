@@ -6,18 +6,12 @@ import numpy as np
 import torch.nn as nn
 import numpy.typing as npt
 import torch.nn.functional as F
+import src.utils as utils
 
 from torch.autograd import Variable
 from src.types import TrainingConfig, TrainingLogger
-from src.utils.confusion_matrix import ConfusionMatrix
-
 
 # TODO: Add support for tracking the following metrics during training and validation: 'loss'
-
-
-cm = ConfusionMatrix
-cm_macro = ConfusionMatrix.Macro
-cm_micro = ConfusionMatrix.Micro
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -146,10 +140,10 @@ def calculate_metrics(training_logger: TrainingLogger):
 
     # calculating metrics
     training_precision, training_recall, training_f1_score, training_accuracy = (
-        cm.calculate_per_class_metrics(training_confusion_matrix))
+        utils.cm.calculate_per_class_metrics(training_confusion_matrix))
 
     validation_precision, validation_recall, validation_f1_score, validation_accuracy = (
-        cm.calculate_per_class_metrics(validation_confusion_matrix))
+        utils.cm.calculate_per_class_metrics(validation_confusion_matrix))
 
     # storing metrics
     training_logger.training_precision_history.append(training_precision)
@@ -184,14 +178,14 @@ def print_metrics(epoch, total_epochs, training_config: TrainingConfig, training
     )
 
     training_config.output_logger.info(
-          f'\nEpoch {epoch + 1}/{total_epochs}:\n'
-          f'\tTraining precision: {training_precision:.4f}\n'
-          f'\tTraining recall: {training_recall:.4f}\n'
-          f'\tTraining accuracy: {training_accuracy:.4f}\n'
-          f'\tTraining f1-score: {training_f1_score:.4f}\n\n'
-          f'\tValidation precision: {validation_precision:.4f}\n'
-          f'\tValidation recall: {validation_recall:.4f}\n'
-          f'\tValidation accuracy: {validation_accuracy:.4f}\n'
-          f'\tValidation f1-score: {validation_f1_score:.4f}\n'
-          f'{learning_rates_str}'
+        f'\nEpoch {epoch + 1}/{total_epochs}:\n'
+        f'\tTraining precision: {training_precision:.4f}\n'
+        f'\tTraining recall: {training_recall:.4f}\n'
+        f'\tTraining accuracy: {training_accuracy:.4f}\n'
+        f'\tTraining f1-score: {training_f1_score:.4f}\n\n'
+        f'\tValidation precision: {validation_precision:.4f}\n'
+        f'\tValidation recall: {validation_recall:.4f}\n'
+        f'\tValidation accuracy: {validation_accuracy:.4f}\n'
+        f'\tValidation f1-score: {validation_f1_score:.4f}\n'
+        f'{learning_rates_str}'
     )

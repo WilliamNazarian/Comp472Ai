@@ -1,15 +1,8 @@
 import os
-import pickle
-
-import pipe
-import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import pandas as pd
 
-from typing import List
-from dataclasses import dataclass, field
-from pipe import *
 from torch.utils.data import DataLoader, random_split
 
 
@@ -37,9 +30,9 @@ pin_memory = True
 
 
 def get_metadata():
-    csv_path = "./part1/Combined_Labels_DataFrame.csv"
+    csv_path = "./dataset/Combined_Labels_DataFrame.csv"
     df = pd.read_csv(csv_path)
-    df['path'] = df['path'].apply(lambda path: "./part1/structured_data/" + path)
+    df['path'] = df['path'].apply(lambda path: "./dataset/structured_data/" + path)
     return df
 
 
@@ -96,21 +89,3 @@ class KFold:
 
         lengths = ([fold_len] * (folds - 1)) + [last_fold_len]
         return random_split(trainset, lengths)
-
-
-"""
-    @staticmethod
-    def generate_data_loaders_from_sub_datasets(sub_datasets):
-    global shuffle
-    global num_workers
-    global pin_memory
-
-    data_loaders = []
-    for sub_dataset in sub_datasets:
-        as_data_loader = (
-            DataLoader(sub_dataset, batch_size=32, shuffle=shuffle, num_workers=num_workers, pin_memory=pin_memory))
-        data_loaders.append(as_data_loader)
-
-    return data_loaders
-"""
-

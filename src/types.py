@@ -1,22 +1,17 @@
+import pipe
 import logging
+import numpy as np
 import pandas as pd
 import torch.nn as nn
-import torch.optim as optim
-import numpy as np
 import numpy.typing as npt
-import pipe
+import torch.optim as optim
+import src.utils as utils
 
+from typing import List
+from typing import Union
 from tabulate import tabulate
 from torch.utils.data import DataLoader
-from typing import List, Tuple
 from dataclasses import dataclass, field
-from typing import Union
-from src.utils.confusion_matrix import ConfusionMatrix
-
-cm = ConfusionMatrix
-cm_macro = ConfusionMatrix.Macro
-cm_micro = ConfusionMatrix.Micro
-
 
 SchedulerType = Union[
     optim.lr_scheduler.StepLR,
@@ -33,6 +28,9 @@ SchedulerType = Union[
 
 @dataclass
 class TrainingConfig:
+    """
+    Dataclass that stores parameters for training a model (the 'default' way).
+    """
     # Where models will be saved to
     model_name: str
     output_dir: str
@@ -56,6 +54,9 @@ class TrainingConfig:
 
 @dataclass
 class TrainingLogger:
+    """
+    Dataclass meant to store data when training and validating a model.
+    """
     training_confusion_matrix_history: List[npt.NDArray[int]] = field(default_factory=list)
     validation_confusion_matrix_history: List[npt.NDArray[int]] = field(default_factory=list)
 
@@ -70,14 +71,22 @@ class TrainingLogger:
     validation_f1_score_history: List[npt.NDArray[int]] = field(default_factory=list)
 
 
-@dataclass(frozen=True)  # 'frozen=True' means type is immutable
+@dataclass(frozen=True)
 class EvaluationResults:
+    """
+    Wrapper class intended to store the performance confusion matrix of a model on the testing set. Contains wrapper
+    methods for extracting data from this confusion matrix.
+    """
+
     confusion_matrix: npt.NDArray[int]
 
     def get_metrics_table_as_df(self) -> pd.DataFrame:
-        macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
+        """
+        Formats the confusion matrix as a pandas dataframe that displays the overall macro/micro performance of the model.
+        """
+        macro_precision, macro_recall, macro_f1_score, macro_accuracy = utils.cm_macro.calculate_overall_metrics(
             self.confusion_matrix)
-        micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
+        micro_precision, micro_recall, micro_f1_score, micro_accuracy = utils.cm_micro.calculate_overall_metrics(
             self.confusion_matrix)
         accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
 
@@ -93,6 +102,9 @@ class EvaluationResults:
         return df
 
     def get_confusion_matrix_as_df(self) -> pd.DataFrame:
+        """
+        Formats the confusion matrix as a labelled and stylized pandas dataframe.
+        """
         df = pd.DataFrame(self.confusion_matrix,
                           index=pd.Index(["anger", "engaged", "happy", "neutral"]),
                           columns=pd.Index(["anger", "engaged", "happy", "neutral"]))
@@ -100,7 +112,10 @@ class EvaluationResults:
         return df
 
     def get_metrics_per_class_as_df(self) -> pd.DataFrame:
-        precisions, recalls, f1_scores, accuracies = cm.calculate_per_class_metrics(self.confusion_matrix)
+        """
+        Processes and formats the confusion matrix as a table detailing the performance metrics per class.
+        """
+        precisions, recalls, f1_scores, accuracies = utils.cm.calculate_per_class_metrics(self.confusion_matrix)
         array = [precisions, recalls, f1_scores, accuracies]
 
         df = pd.DataFrame(array,
@@ -117,9 +132,9 @@ class EvaluationResults:
         print("\n\n\nMetrics per class:")
         print(tabulate(metrics_per_class_df, headers=["anger", "engaged", "happy", "neutral"]))
 
-        macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
+        macro_precision, macro_recall, macro_f1_score, macro_accuracy = utils.cm_macro.calculate_overall_metrics(
             self.confusion_matrix)
-        micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
+        micro_precision, micro_recall, micro_f1_score, micro_accuracy = utils.cm_micro.calculate_overall_metrics(
             self.confusion_matrix)
         accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
 
@@ -143,9 +158,9 @@ class EvaluationResults:
         """
         data = []
         for evaluation_result in evaluation_results_list:
-            macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
+            macro_precision, macro_recall, macro_f1_score, macro_accuracy = utils.cm_macro.calculate_overall_metrics(
                 evaluation_result.confusion_matrix)
-            micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
+            micro_precision, micro_recall, micro_f1_score, micro_accuracy = utils.cm_micro.calculate_overall_metrics(
                 evaluation_result.confusion_matrix)
             accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
             data.append(

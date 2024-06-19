@@ -2,15 +2,10 @@ import logging
 import torch
 import numpy as np
 import torch.nn as nn
+import src.utils as utils
 
 from torch.utils.data import DataLoader
 from src.types import EvaluationResults
-from src.utils.confusion_matrix import ConfusionMatrix
-
-
-cm = ConfusionMatrix
-cm_macro = ConfusionMatrix.Macro
-cm_micro = ConfusionMatrix.Micro
 
 
 __device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -46,9 +41,9 @@ def evaluate_model(logger: logging.Logger, model: nn.Module, dataloader: DataLoa
 
 
 def __print_confusion_matrix_metrics(logger: logging.Logger, batch_number: int, confusion_matrix: np.ndarray):
-    macro_precision, macro_recall, macro_f1_score, macro_accuracy = cm_macro.calculate_overall_metrics(
+    macro_precision, macro_recall, macro_f1_score, macro_accuracy = utils.cm_macro.calculate_overall_metrics(
         confusion_matrix)
-    micro_precision, micro_recall, micro_f1_score, micro_accuracy = cm_micro.calculate_overall_metrics(
+    micro_precision, micro_recall, micro_f1_score, micro_accuracy = utils.cm_micro.calculate_overall_metrics(
         confusion_matrix)
     accuracy = (macro_accuracy + micro_accuracy) / 2  # should be the same for both
 
