@@ -16,12 +16,23 @@ __mean_gray = 0.1307
 __stddev_gray = 0.3081
 
 transform = transforms.Compose([
+    transforms.Resize((90, 90)),  # Resize images to 90x90
     transforms.Grayscale(num_output_channels=1),
     transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(10),
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
 ])
+
+"""
+transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(10),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
+"""
 
 # Dataloader settings
 shuffle = True
