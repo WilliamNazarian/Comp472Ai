@@ -34,7 +34,9 @@ def evaluate_model(logger: logging.Logger, model: nn.Module, dataloader: DataLoa
             for expected, actual in list(zip(expected, actual)):
                 confusion_matrix[actual, expected] += 1
 
-            __print_confusion_matrix_metrics(logger, current_batch, confusion_matrix)
+            if logger is not None:
+                __print_confusion_matrix_metrics(logger, current_batch, confusion_matrix)
+
             current_batch += 1
 
     return EvaluationResults(confusion_matrix=confusion_matrix)
