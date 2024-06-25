@@ -17,10 +17,6 @@ def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[T
     folds = training_config.folds
     num_folds = len(folds)
 
-    model = training_config.model
-    model.apply(training.init_weights)
-    model.to(training.device)
-
     criterion = training_config.criterion
     optimizer = training_config.optimizer
     scheduler = training_config.scheduler
@@ -30,9 +26,13 @@ def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[T
 
     for current_index in range(num_folds):
         # 0. setups
-        fold_output_dir = os.path.join(training_config.output_dir, f"fold_{current_index}")
+        fold_output_dir = os.path.join(training_config.output_dir, f"fold_{current_index + 1}")
         if not os.path.exists(fold_output_dir):
             os.makedirs(fold_output_dir)
+
+        model = training_config.model_type()
+        model.apply(training.init_weights)
+        model.to(training.device)
 
         # 1. getting the datasets for this fold iteration
         testing_dataset = folds[current_index]
@@ -93,6 +93,10 @@ def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[T
         # 4. testing & saving results
         evaluation_results = evaluation.evaluate_model(training_config.output_logger, model, testing_set_loader)
         evaluation_results.print_extensive_summary()
+
+        with open(os.path.join(fold_output_dir, "testing_results.pkl"), "wb") as file:
+            pickle.dump(evaluation_results, file)
+
         results_per_fold.append((training_logger, evaluation_results))
 
     return results_per_fold
