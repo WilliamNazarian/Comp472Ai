@@ -5,6 +5,7 @@ import pandas as pd
 
 from torch.utils.data import DataLoader, random_split
 
+import src.utils.shuffled_image_folder
 
 # Get the current file's directory
 __current_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,7 +40,9 @@ def get_metadata():
 
 def get_trainset(use_colored=False):
     images_directory = colored_images_directory if use_colored else greyscale_images_directory
-    return datasets.ImageFolder(root=images_directory, transform=transform)
+    trainset = src.utils.shuffled_image_folder.ShuffledImageFolder(root=images_directory, transform=transform)
+    trainset.shuffle()
+    return trainset
 
 
 # Splits the dataset to training, validation, and test sub-datasets

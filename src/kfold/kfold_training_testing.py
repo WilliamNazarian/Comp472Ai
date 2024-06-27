@@ -12,6 +12,7 @@ from torch.utils.data import Subset
 from src.types import TrainingLogger, EvaluationResults
 from src.data_loader import create_data_loader
 from src.kfold.kfold_training_config import KFoldTrainingConfig
+from src.models.main_model import OB_05Model
 
 
 @dataclass
@@ -86,7 +87,7 @@ def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[T
         training_dataloader, validation_dataloader, testing_dataloader = (
             SubsetIndices.to_data_loaders(dataset, subset_indices))
 
-        model = training_config.model_type()
+        model = OB_05Model()
         model.apply(training.init_weights)
         model.to(training.device)
 
