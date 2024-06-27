@@ -6,6 +6,7 @@ import src.training as training
 import src.evaluation as evaluation
 import src.data_loader as data_loader
 import src.kfold.splitting_strategies.manual as manual_split
+import src.kfold.splitting_strategies.scikit_learn as scikit_split
 
 from typing import List, Tuple
 from src.types import TrainingLogger, EvaluationResults
@@ -16,7 +17,7 @@ from src.models.main_model import OB_05Model
 def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[TrainingLogger, EvaluationResults]]:
     num_folds = training_config.num_folds
     dataset = training_config.dataset
-    dataset_subsets_per_fold = manual_split.get_dataset_subsets_per_fold(dataset, num_folds)
+    dataset_subsets_per_fold = scikit_split.get_dataset_subsets_per_fold(dataset, num_folds)
 
     results_per_fold: List[Tuple[TrainingLogger, EvaluationResults]] = []
 
