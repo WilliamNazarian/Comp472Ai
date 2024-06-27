@@ -2,45 +2,21 @@ import os
 import torch
 import pickle
 import numpy as np
-import pipe as pipe
 import src.training as training
 import src.evaluation as evaluation
 import src.data_loader as data_loader
+import src.kfold.splitting_strategies as split_strategies
 
 from typing import List, Tuple
-from dataclasses import dataclass
-from torch.utils.data import DataLoader, Subset
-from sklearn.model_selection import KFold
 from src.types import TrainingLogger, EvaluationResults
 from src.kfold.kfold_training_config import KFoldTrainingConfig
 from src.models.main_model import OB_05Model
 
 
-def __get_dataset_subsets_per_fold(image_folder_dataset, num_folds):
-    kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
-    indices = list(range(len(image_folder_dataset)))
-    folds = list(kf.split(indices))
-
-    subsets = []
-
-    for fold_idx, (train_val_indices, test_indices) in enumerate(folds):
-        train_size = int(0.8 * len(train_val_indices))
-        # val_size = len(train_val_indices) - train_size
-        train_indices, val_indices = train_val_indices[:train_size], train_val_indices[train_size:]
-
-        train_subset = Subset(image_folder_dataset, train_indices)
-        val_subset = Subset(image_folder_dataset, val_indices)
-        test_subset = Subset(image_folder_dataset, test_indices)
-
-        subsets.append((train_subset, val_subset, test_subset))
-
-    return subsets
-
-
 def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[TrainingLogger, EvaluationResults]]:
     num_folds = training_config.num_folds
     dataset = training_config.dataset
-    dataset_subsets_per_fold = __get_dataset_subsets_per_fold(dataset, num_folds)
+    dataset_subsets_per_fold = split_strategies.manual.get_dataset_subsets_per_fold(dataset, num_folds)
 
     results_per_fold: List[Tuple[TrainingLogger, EvaluationResults]] = []
 
@@ -100,7 +76,7 @@ def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[T
                     break
 
             # print data to stdout
-            __print_metrics(current_index, num_folds, epoch, training_config, training_logger)
+            __print_metrics(current_index, num_folds, epoch, training_config, optimizer, training_logger)
 
         # 4. testing & saving results
         evaluation_results = evaluation.evaluate_model(training_config.output_logger, model, testing_dataloader)
@@ -116,6 +92,7 @@ def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[T
 
 def __print_metrics(current_fold, total_folds, current_epoch,
                     training_config: KFoldTrainingConfig,
+                    optimizer,
                     training_logger: TrainingLogger):
     if training_config.output_logger is None:
         return
@@ -133,7 +110,7 @@ def __print_metrics(current_fold, total_folds, current_epoch,
 
     learning_rates_str = "\n".join(
         f"\tLearning rate for param group \"{i}\": {param_group['lr']}"
-        for i, param_group in enumerate(training_config.optimizer.param_groups)
+        for i, param_group in enumerate(optimizer.param_groups)
     )
 
     training_config.output_logger.info(
