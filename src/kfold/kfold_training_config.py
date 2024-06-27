@@ -2,8 +2,8 @@ import logging
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision.datasets as datasets
 
-from torch.utils.data import DataLoader
 from typing import Type, List
 from dataclasses import dataclass
 from typing import Union
@@ -17,10 +17,11 @@ class KFoldTrainingConfig:
     output_logger: Union[logging.Logger, None]
 
     # Datasets
-    folds: List[torch.utils.data.Subset]
+    dataset: datasets.ImageFolder
     classes: List[str]
 
     # Training hyperparameters
+    num_folds: int
     epochs_per_fold: int
     initial_learning_rate: float
     patience: int

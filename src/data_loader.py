@@ -16,23 +16,13 @@ __mean_gray = 0.1307
 __stddev_gray = 0.3081
 
 transform = transforms.Compose([
-    transforms.Resize((90, 90)),  # Resize images to 90x90
+    transforms.Resize((90, 90)),
     transforms.Grayscale(num_output_channels=1),
     transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(10),
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
 ])
-
-"""
-transform = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomRotation(10),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
-])
-"""
 
 # Dataloader settings
 shuffle = True
@@ -78,25 +68,3 @@ def split_images_dataset(use_colored=False):
 
 def create_data_loader(dataset):
     return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
-
-
-class KFold:
-    @staticmethod
-    def split_into_n_sub_datasets(folds: int):
-        """
-
-        :param folds:
-        :return:
-        """
-        global greyscale_images_directory
-        global transform
-
-        trainset = datasets.ImageFolder(root=greyscale_images_directory, transform=transform)
-        trainset_len = len(trainset)
-
-        ratio = 1 / folds
-        fold_len = int(trainset_len * ratio)
-        last_fold_len = trainset_len - (folds - 1) * fold_len
-
-        lengths = ([fold_len] * (folds - 1)) + [last_fold_len]
-        return random_split(trainset, lengths)
