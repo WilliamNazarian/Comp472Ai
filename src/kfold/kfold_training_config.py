@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.datasets as datasets
 
-from typing import Type, List
+from typing import Type, List, Callable, Tuple
 from dataclasses import dataclass
 from typing import Union
 from src.types import SchedulerType
@@ -23,10 +23,9 @@ class KFoldTrainingConfig:
     # Training hyperparameters
     num_folds: int
     epochs_per_fold: int
-    initial_learning_rate: float
-    patience: int
 
     model_type: Type[torch.nn.Module]
-    criterion: nn.modules.loss._Loss
-    optimizer: optim.Optimizer
-    scheduler: SchedulerType
+
+    # Function that returns hyperparameters, since some are tied to the instance of the model itself
+    # model -> (criterion, optimizer, scheduler)
+    generate_hyper_parameters: Callable[[torch.nn.Module], Tuple[nn.modules.loss._Loss, optim.Optimizer, SchedulerType]]

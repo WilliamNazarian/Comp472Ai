@@ -5,13 +5,13 @@ import numpy as np
 import pipe as pipe
 import src.training as training
 import src.evaluation as evaluation
+import src.data_loader as data_loader
 
 from typing import List, Tuple
 from dataclasses import dataclass
 from torch.utils.data import DataLoader, Subset
 from sklearn.model_selection import KFold
 from src.types import TrainingLogger, EvaluationResults
-from src.data_loader import create_data_loader
 from src.kfold.kfold_training_config import KFoldTrainingConfig
 from src.models.main_model import OB_05Model
 
@@ -38,30 +38,28 @@ def __get_dataset_subsets_per_fold(image_folder_dataset, num_folds):
 
 
 def kfold_cross_validation(training_config: KFoldTrainingConfig) -> List[Tuple[TrainingLogger, EvaluationResults]]:
-    dataset = training_config.dataset
-    criterion = training_config.criterion
-    optimizer = training_config.optimizer
-    scheduler = training_config.scheduler
-    patience = training_config.patience
-
     num_folds = training_config.num_folds
+    dataset = training_config.dataset
     dataset_subsets_per_fold = __get_dataset_subsets_per_fold(dataset, num_folds)
 
     results_per_fold: List[Tuple[TrainingLogger, EvaluationResults]] = []
 
     for current_index, (training_subset, validation_subset, testing_subset) in enumerate(dataset_subsets_per_fold):
-        # 1. setups
+        # 1. setting up output folders and initial values
         fold_output_dir = os.path.join(training_config.output_dir, f"fold_{current_index + 1}")
         if not os.path.exists(fold_output_dir):
             os.makedirs(fold_output_dir)
 
-        training_dataloader = create_data_loader(training_subset)
-        validation_dataloader = create_data_loader(validation_subset)
-        testing_dataloader = create_data_loader(testing_subset)
-
         model = OB_05Model()
         model.apply(training.init_weights)
         model.to(training.device)
+
+        criterion, optimizer, scheduler = training_config.generate_hyper_parameters(model)
+        patience = scheduler.patience
+
+        training_dataloader = data_loader.create_data_loader(training_subset)
+        validation_dataloader = data_loader.create_data_loader(validation_subset)
+        testing_dataloader = data_loader.create_data_loader(testing_subset)
 
         # 2. initializing values for the fold
         best_validation_loss = float("inf")
